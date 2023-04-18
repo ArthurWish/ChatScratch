@@ -157,7 +157,7 @@ def build_task(task_name, pre_task=None):
             raise "assistant content is empty"
 
     if task_name == "story":
-        task_first_message = "你是一个资深儿童作家，请你以[user_input]写一个400词左右的儿童故事,为了故事更加有趣,请你在角色、场景的塑造，动作、对话、心理活动的描述上多斟酌。"
+        task_first_message = "你是一个资深儿童作家，请你以[user_input]写一个200词左右的儿童故事,为了故事更加有趣,请你在角色、场景的塑造，动作、对话、心理活动的描述上多斟酌。"
         user_topic = input("input topic")
         task_first_message = task_first_message.replace(
             "user_input", user_topic)
@@ -182,16 +182,18 @@ def build_task(task_name, pre_task=None):
 
 @dataclass
 class TaskType:
-    task1: str = "story"
-    task2: str = "storyboard"
-    task3: str = "format"
-    task4: str = "plan"
+    story: str = "story"
+    storyboard: str = "storyboard"
+    format: str = "format"
+    plan: str = "plan"
+    image_prompt: str = "image_prompt"
 
 
 if __name__ == "__main__":
     # draw_with_ai("colorful bird character design for Angry Birds game in transparent background")
     # TODO token count
 
-    # build_task(TaskType.task1)  # 处理任务1
-    # build_task(TaskType.task2, TaskType.task1)  # 处理任务2并将任务1作为前一个任务
-    build_task(TaskType.task3, TaskType.task2)
+    build_task(TaskType.story)  # 处理任务1
+    build_task(TaskType.storyboard, TaskType.story)  # 处理任务2并将任务1作为前一个任务
+    build_task(TaskType.format, TaskType.storyboard)
+    build_task(TaskType.plan, TaskType.format)
