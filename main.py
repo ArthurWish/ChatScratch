@@ -1,15 +1,16 @@
+import sys
+import time
 from typing import Dict, List
 import json
 import openai
 import os
 import dataclasses
-
+from base64 import b64decode
 os.environ["HTTP_PROXY"] = "http://127.0.0.1:7890"
 os.environ["HTTPS_PROXY"] = "http://127.0.0.1:7890"
 
 mem_dict = {}
 agents = {}
-full_messages_history = []
 
 
 def get_api_key():
@@ -29,12 +30,48 @@ def creat_memory(task: str, messages: List):
     mem_dict[task] = messages
 
     with open("memory.json", "w") as f:
-        json.dump(mem_dict, f)
+        json.dump(mem_dict, f, ensure_ascii=False)
+
+
+def create_chat_completion_stream(messages,
+                                  model="gpt-3.5-turbo",
+                                  temperature=0,
+                                  stream=True,
+                                  max_tokens=None):
+    start_time = time.time()
+    response = openai.ChatCompletion.create(
+        model=model,
+        messages=messages,
+        temperature=temperature,
+        stream=stream  # again, we set stream=True
+    )
+    # create variables to collect the stream of chunks
+    collected_chunks = []
+    collected_messages = []
+    # iterate through the stream of events
+    for chunk in response:
+        chunk_time = time.time(
+        ) - start_time  # calculate the time delay of the chunk
+        collected_chunks.append(chunk)  # save the event response
+        chunk_message = chunk['choices'][0]['delta']  # extract the message
+        collected_messages.append(chunk_message)  # save the message
+        full_reply_content = ''.join(
+        [m.get('content', '') for m in collected_messages])
+        time.sleep(0.2)
+        print(f'\r{full_reply_content}', end='')
+        # print(
+        #     f"Message received {chunk_time:.2f} seconds after request: {chunk_message}"
+        # )  # print the delay and text
+    # print the time delay and text received
+    # print(f"Full response received {chunk_time:.2f} seconds after request")
+    # full_reply_content = ''.join(
+    #     [m.get('content', '') for m in collected_messages])
+    # print(f"Full conversation received: {full_reply_content}")
 
 
 def create_chat_completion(messages,
                            model=None,
-                           temperature=1,
+                           temperature=0,
                            max_tokens=None) -> str:
     """Create a chat completion using the OpenAI API"""
     response = None
@@ -42,7 +79,6 @@ def create_chat_completion(messages,
                                             messages=messages,
                                             temperature=temperature,
                                             max_tokens=max_tokens)
-
     if response is None:
         raise RuntimeError("Failed to get response")
 
@@ -63,6 +99,7 @@ def create_agent(task, prompt, model):
         model=model,
         messages=messages,
     )
+    print("agent: ", agent_reply)
     # Update full message history
     messages.append({"role": "assistant", "content": agent_reply})
     agents[task] = (task, messages, model)
@@ -86,10 +123,74 @@ def message_agent(task, message):
     return agent_reply, messages
 
 
+def chat_with_ai(task):
+    global agents
+    task, messages, model = agents[task]
+    while True:
+        user_input = input("Please input(press Q to exit):\n")
+        if user_input == "Q":
+            return messages
+        agent_reply, messages = message_agent(task, user_input)
+        print("agent: ", agent_reply)
+        agents[task] = (task, messages, model)
+
+def draw_with_ai(prompt: str):
+    response = openai.Image.create(
+    prompt=prompt,
+    n=1,
+    size="256x256",
+    response_format="b64_json"
+    )
+    for index, image_dict in enumerate(response["data"]):
+        image_data = b64decode(image_dict["b64_json"])
+        image_file = "test.png"
+        with open(image_file, mode="wb") as png:
+            png.write(image_data)
+
+def assign_task(task, first_message, ):
+    pass
 
 if __name__ == "__main__":
-    # creat_memory("story")
+    # draw_with_ai("colorful bird character design for Angry Birds game in transparent background")
+    # TODO token count
+    if os.path.exists("memory.json"):
+        os.remove("memory.json")
+    # task1
     task1 = "story"
-    _, agent_reply, messages = create_agent(task1, "you are a story teller.", "gpt-3.5-turbo")
-    creat_memory(task1, messages)
-    # create_agent("storyboard", "you are a storyboard maker.", "gpt-3.5-turbo")
+    task1_first_message = "你是一个资深儿童作家，请你以[user_input]写一个400词左右的儿童故事,为了故事更加有趣,请你在角色、场景的塑造，动作、对话、心理活动的描述上多斟酌。"
+    user_topic = input("input topic")
+    _, agent_reply, messages = create_agent(
+        task1, task1_first_message.replace("user_input", user_topic),
+        "gpt-3.5-turbo")
+    full_history_messages = chat_with_ai(task1)
+    creat_memory(task1, full_history_messages)
+
+    # task2
+    memory = json.load(open("memory.json", "r"))
+    if memory[task1][-1]["role"] == "assistant":
+        generated_story = memory[task1][-1]["content"]
+    else:
+        raise "assistant content is empty"
+    task2 = "storyboard"
+    task2_first_message = "你是一个资深的儿童动画编剧,我有一个儿童故事[ai_generated],我希望你能把故事改编成儿童可以实现的逐帧动画,请用分镜稿的形式展示动画中的重要场景。"
+    _, agent_reply, messages = create_agent(
+        task2, task2_first_message.replace("ai_generated", generated_story),
+        "gpt-3.5-turbo")
+    full_history_messages = chat_with_ai(task2)
+    creat_memory(task2, full_history_messages)
+
+    # task3
+    task3 = "format"
+    memory = json.load(open("memory.json", "r"))
+    if memory[task2][-1]["role"] == "assistant":
+        generated_storyboard = memory[task2][-1]["content"]
+    else:
+        raise "assistant content is empty"
+    task3_first_message = "你是一个资深的scratch编程专家，这里有一个动画编剧提供的分镜描述：[storyboard] 我希望你能考scratch初学者的编程水平，为每一个场景制定对应的scratch实现方案，同时我希望你把分镜稿结构化输出，以json的形式输出结构如下： {场景：int，角色：{角色名称：str，角色描述：str}，背景描述：str，场景描述：str，scratch实现方案：str}"
+    _, agent_reply, messages = create_agent(
+        task3, task3_first_message.replace("storyboard", generated_storyboard),
+        "gpt-3.5-turbo")
+    full_history_messages = chat_with_ai(task3)
+    creat_memory(task3, full_history_messages)
+
+    # task4
