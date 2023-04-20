@@ -148,6 +148,18 @@ def draw_with_ai(prompt: str):
             png.write(image_data)
 
 
+def generate_code(task_name, content):
+    if task_name == "code_recommendation":
+        task_first_message = "你是一个资深的scratch编程专家，我有一个动画编剧提供的分镜[content]，帮我把它写成Scratch代码"
+        task_first_message = task_first_message.replace("content", content)
+    else:
+        raise f"the {task_name} is invalid."
+    _, agent_reply, messages = create_agent(task_name, task_first_message,
+                                            "gpt-3.5-turbo")
+    full_history_messages = chat_with_ai(task_name)
+    creat_memory(task_name, full_history_messages)
+
+
 def build_task(task_name, pre_task=None):
     if pre_task:
         memory = json.load(open("memory.json", "r"))
@@ -162,15 +174,15 @@ def build_task(task_name, pre_task=None):
         task_first_message = task_first_message.replace(
             "user_input", user_topic)
     elif task_name == "storyboard":
-        task_first_message = "你是一个资深的儿童动画编剧,我有一个儿童故事[ai_generated],我希望你能把故事改编成儿童可以实现的逐帧动画,请用分镜稿的形式展示动画中的重要场景。"
+        task_first_message = "你是一个资深的儿童动画编剧,我有一个儿童故事[content],我希望你能把故事改编成儿童可以实现的逐帧动画,请用分镜稿的形式展示动画中的重要场景。"
         task_first_message = task_first_message.replace(
             "ai_generated", content)
     elif task_name == "format":
-        task_first_message = "你是一个资深的scratch编程专家，这里有一个动画编剧提供的分镜描述：[storyboard] 我希望你能考scratch初学者的编程水平，为每一个场景制定对应的scratch实现方案，同时我希望你把分镜稿结构化输出，以json的形式输出结构如下： {场景：int，角色：{角色名称：str，角色描述：str}，背景描述：str，场景描述：str，scratch实现方案：str}"
-        task_first_message = task_first_message.replace("storyboard", content)
+        task_first_message = "你是一个资深的scratch编程专家，这里有一个动画编剧提供的分镜描述：[content] 我希望你能考scratch初学者的编程水平，为每一个场景制定对应的scratch实现方案，同时我希望你把分镜稿结构化输出，以json的形式输出结构如下： {场景：int，角色：{角色名称：str，角色描述：str}，背景描述：str，场景描述：str，scratch实现方案：str}"
+        task_first_message = task_first_message.replace("content", content)
     elif task_name == "plan":
-        task_first_message = "你是一个资深的scratch编程专家，我有一个动画编剧提供的分镜方案[format]，请你考虑scratch编程初学者的水平，设计具体的实现方案"
-        task_first_message = task_first_message.replace("format", content)
+        task_first_message = "你是一个资深的scratch编程专家，我有一个动画编剧提供的分镜方案[content]，请你考虑scratch编程初学者的水平，设计具体的实现方案"
+        task_first_message = task_first_message.replace("content", content)
     else:
         raise ValueError("Invalid task type")
 
@@ -187,13 +199,16 @@ class TaskType:
     format: str = "format"
     plan: str = "plan"
     image_prompt: str = "image_prompt"
+    code_recommendation: str = "code_recommendation"
 
-
-if __name__ == "__main__":
-    # draw_with_ai("colorful bird character design for Angry Birds game in transparent background")
-    # TODO token count
-
+def main():
     build_task(TaskType.story)  # 处理任务1
     build_task(TaskType.storyboard, TaskType.story)  # 处理任务2并将任务1作为前一个任务
     build_task(TaskType.format, TaskType.storyboard)
     build_task(TaskType.plan, TaskType.format)
+
+if __name__ == "__main__":
+    # draw_with_ai("colorful bird character design for Angry Birds game in transparent background")
+    # TODO token count
+    generate_code(task_name=TaskType.code_recommendation, content="设置背景为学校运动会场景，创建小熊和小兔子角色，设置角色的初始位置和动作。")
+    
