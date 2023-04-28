@@ -1,3 +1,5 @@
 envs
 __pycache__
 **.json
+**.png
+**.wav

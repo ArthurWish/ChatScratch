@@ -26,11 +26,12 @@ openai.api_key = get_api_key()
 
 def creat_memory(task: str, messages: List):
     # messages is full history
-    global mem_dict
 
-    mem_dict[task] = messages
+    mem_dict = {
+        f"{task}": messages
+    }
 
-    with open("memory.json", "w") as f:
+    with open(f"{task}.json", "w") as f:
         json.dump(mem_dict, f, ensure_ascii=False)
 
 
@@ -162,21 +163,21 @@ def generate_code(task_name, content):
 
 def build_task(task_name, pre_task=None):
     if pre_task:
-        memory = json.load(open("memory.json", "r"))
-        if memory[pre_task][-1]["role"] == "assistant":
-            content = memory[pre_task][-1]["content"]
+        memory_pre_task = json.load(open(f"{pre_task}.json", "r"))
+        if memory_pre_task[pre_task][-1]["role"] == "assistant":
+            content = memory_pre_task[pre_task][-1]["content"]
         else:
             raise "assistant content is empty"
 
     if task_name == "story":
         task_first_message = "你是一个资深儿童作家，请你以[user_input]写一个200词左右的儿童故事,为了故事更加有趣,请你在角色、场景的塑造，动作、对话、心理活动的描述上多斟酌。"
-        user_topic = input("input topic")
+        user_topic = input("input topic:\n")
         task_first_message = task_first_message.replace(
             "user_input", user_topic)
     elif task_name == "storyboard":
         task_first_message = "你是一个资深的儿童动画编剧,我有一个儿童故事[content],我希望你能把故事改编成儿童可以实现的逐帧动画,请用分镜稿的形式展示动画中的重要场景。"
         task_first_message = task_first_message.replace(
-            "ai_generated", content)
+            "content", content)
     elif task_name == "format":
         task_first_message = "你是一个资深的scratch编程专家，这里有一个动画编剧提供的分镜描述：[content] 我希望你能考scratch初学者的编程水平，为每一个场景制定对应的scratch实现方案，同时我希望你把分镜稿结构化输出，以json的形式输出结构如下： {场景：int，角色：{角色名称：str，角色描述：str}，背景描述：str，场景描述：str，scratch实现方案：str}"
         task_first_message = task_first_message.replace("content", content)
@@ -208,7 +209,8 @@ def main():
     build_task(TaskType.plan, TaskType.format)
 
 if __name__ == "__main__":
-    # draw_with_ai("colorful bird character design for Angry Birds game in transparent background")
+    main()
+    # draw_with_ai("a little cat, front-facing, fishing, line art, colored, anime, simple, child style, in a trasparent background")
     # TODO token count
-    generate_code(task_name=TaskType.code_recommendation, content="设置背景为学校运动会场景，创建小熊和小兔子角色，设置角色的初始位置和动作。")
-    
+    # generate_code(task_name=TaskType.code_recommendation, content="设置背景为学校运动会场景，创建小熊和小兔子角色，设置角色的初始位置和动作。")
+    # TODO 分镜数据单独存
