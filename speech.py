@@ -8,18 +8,21 @@ import urllib
 import hashlib
 from dataclasses import dataclass
 import time
-
+import os
 import requests
 
-def speech_to_text(files):
+
+
+def speech_to_text(files, audio_file_name):
+    """
+    语音转文本，并保存语音
+    """
     audio_file = files['audio']
-    audio_file.save('static/audio.wav')
-    audio_file = open('static/audio.wav', 'rb')
+    audio_file.save(f'static/{audio_file_name}.mp3')
+    audio_file = open(f'static/{audio_file_name}.mp3', 'rb')
     transcript = openai.Audio.transcribe("whisper-1", audio_file)
     content = transcript["text"]
-    with open("speech_to_text.txt", "+a") as f:
-        f.write("\n")
-        f.write(content)
+    
     return content
 
 
@@ -31,12 +34,12 @@ class Authorization:
     conf = configparser.ConfigParser()
 
     def init(self):
-        print("init")
+        # print("init")
         self.conf.read("./envs/tcloud_auth.ini", encoding="UTF-8")
         self.AppId = self.conf.getint("authorization", "AppId")
         self.SecretId = self.conf.get("authorization", "SecretId")
         self.SecretKey = self.conf.get("authorization", "SecretKey")
-        print(self)
+        # print(self)
 
     def generate_sign(self, request_data):
         url = "tts.cloud.tencent.com/stream"
@@ -52,7 +55,7 @@ class Authorization:
         sign_str = sign_str[:-1]
         sign_bytes = sign_str.encode('utf-8')
         key_bytes = self.SecretKey.encode('utf-8')
-        print(sign_bytes)
+        # print(sign_bytes)
         authorization = base64.b64encode(
             hmac.new(key_bytes, sign_bytes, hashlib.sha1).digest())
         return authorization.decode('utf-8')
@@ -69,12 +72,12 @@ class Request:
     SampleRate = 16000
     SessionId = "123"
     Speed = 0
-    VoiceType = 101016
+    VoiceType = 1017
     Volume = 5
     conf = configparser.ConfigParser()
 
     def init(self, text: str):
-        print("init")
+        # print("init")
         self.conf.read("./envs/request_parameter.ini", encoding="UTF-8")
         # self.Text = self.conf.get("parameter", "Text")
         self.Text = text
@@ -88,8 +91,9 @@ class Request:
         self.SessionId = self.conf.get("parameter", "SessionId")
         self.Speed = self.conf.getfloat("parameter", "Speed")
         self.VoiceType = self.conf.getint("parameter", "VoiceType")
+        # self.VoiceType = 1017
         self.Volume = self.conf.getfloat("parameter", "Volume")
-        print(self)
+        # print(self)
 
 
 def text_to_speech(text):
@@ -113,29 +117,30 @@ def text_to_speech(text):
     request_data['Timestamp'] = int(time.time())
     request_data['VoiceType'] = req.VoiceType
     request_data['Volume'] = req.Volume
-    signature = auth.generate_sign(request_data = request_data)
-    header = {
-        "Content-Type": "application/json",
-        "Authorization": signature
-    }
+    signature = auth.generate_sign(request_data=request_data)
+    header = {"Content-Type": "application/json", "Authorization": signature}
     url = "https://tts.cloud.tencent.com/stream"
 
-    r = requests.post(url, headers=header, data=json.dumps(request_data), stream = True)
+    r = requests.post(url,
+                      headers=header,
+                      data=json.dumps(request_data),
+                      stream=True)
     '''
     if str(r.content).find("Error") != -1 :
         print(r.content)
         return
     '''
     i = 1
-    wavfile = wave.open('test.wav', 'wb')
+    wavfile = wave.open('static/answear.mp3', 'wb')
     wavfile.setparams((1, 2, 16000, 0, 'NONE', 'NONE'))
     for chunk in r.iter_content(1000):
-        if (i == 1) & (str(chunk).find("Error") != -1) :
-            print(chunk)
-            return 
+        if (i == 1) & (str(chunk).find("Error") != -1):
+            # print(chunk)
+            return
         i = i + 1
         wavfile.writeframes(chunk)
-        
+
     wavfile.close()
+
 
 # text_to_speech("我是一个小猪")

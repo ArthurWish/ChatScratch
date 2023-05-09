@@ -6,6 +6,7 @@ import openai
 import os
 from dataclasses import dataclass
 from base64 import b64decode
+import configparser
 
 os.environ["HTTP_PROXY"] = "http://127.0.0.1:7890"
 os.environ["HTTPS_PROXY"] = "http://127.0.0.1:7890"
@@ -15,10 +16,9 @@ agents = {}
 
 
 def get_api_key():
-    openai_key_file = './envs/openai_key'
-    with open(openai_key_file, 'r', encoding='utf-8') as f:
-        openai_key = json.loads(f.read())
-    return openai_key['api']
+    conf = configparser.ConfigParser()
+    conf.read("./envs/keys.ini")
+    return conf.get("openai", "api")
 
 
 openai.api_key = get_api_key()
@@ -27,9 +27,7 @@ openai.api_key = get_api_key()
 def creat_memory(task: str, messages: List):
     # messages is full history
 
-    mem_dict = {
-        f"{task}": messages
-    }
+    mem_dict = {f"{task}": messages}
 
     with open(f"{task}.json", "w") as f:
         json.dump(mem_dict, f, ensure_ascii=False)
@@ -124,7 +122,39 @@ def message_agent(task, message):
 
     return agent_reply, messages
 
-
+def init_agent(agent_name, message):
+    pass 
+def chat_with_agent(agent_name, message):
+    agent_memory = f"{agent_name}.json"
+    # init agent
+    if not os.path.exists(agent_memory):
+        messages = []
+        messages.append({"role": "user", "content": message})
+        agent_reply = create_chat_completion(
+            model="gpt-3.5-turbo",
+            messages=messages,
+        )
+        messages.append({"role": "assistant", "content": agent_reply})
+        with open(agent_memory, "w") as f:
+            json.dump(messages, f, ensure_ascii=False)
+    # chat agent
+    else:
+        messages: List = json.load(open(agent_memory, "r"))  # List
+        # messages = [] # not load memory
+        messages.append({"role": "user", "content": message})
+        agent_reply = create_chat_completion(
+            model="gpt-3.5-turbo",
+            messages=messages,
+        )
+        messages.append({"role": "assistant", "content": agent_reply})
+        with open(agent_memory, "w") as f:
+            json.dump(messages, f, ensure_ascii=False)
+    print(agent_reply)
+    if agent_name == "step":
+        print(agent_reply+"你能按照这个方案来编程吗？")
+    elif agent_name == "detail":
+        print("当然，我可以给你一个参考:\n"+agent_reply)
+        
 def chat_with_ai(task):
     global agents
     task, messages, model = agents[task]
@@ -176,8 +206,7 @@ def build_task(task_name, pre_task=None):
             "user_input", user_topic)
     elif task_name == "storyboard":
         task_first_message = "你是一个资深的儿童动画编剧,我有一个儿童故事[content],我希望你能把故事改编成儿童可以实现的逐帧动画,请用分镜稿的形式展示动画中的重要场景。"
-        task_first_message = task_first_message.replace(
-            "content", content)
+        task_first_message = task_first_message.replace("content", content)
     elif task_name == "format":
         task_first_message = "你是一个资深的scratch编程专家，这里有一个动画编剧提供的分镜描述：[content] 我希望你能考scratch初学者的编程水平，为每一个场景制定对应的scratch实现方案，同时我希望你把分镜稿结构化输出，以json的形式输出结构如下： {场景：int，角色：{角色名称：str，角色描述：str}，背景描述：str，场景描述：str，scratch实现方案：str}"
         task_first_message = task_first_message.replace("content", content)
@@ -202,14 +231,57 @@ class TaskType:
     image_prompt: str = "image_prompt"
     code_recommendation: str = "code_recommendation"
 
+
+@dataclass
+class TaskMessageStory:
+    first: str = ""
+    second: str = ""
+    third: str = ""
+
+
 def main():
     build_task(TaskType.story)  # 处理任务1
     build_task(TaskType.storyboard, TaskType.story)  # 处理任务2并将任务1作为前一个任务
     build_task(TaskType.format, TaskType.storyboard)
     build_task(TaskType.plan, TaskType.format)
 
+
 if __name__ == "__main__":
-    main()
+
+    # main()
+    # input_1 = input("模拟输入儿童的问题:\n")
+
+    chat_with_agent("test1", f"你是一个Scratch编程老师。请用Scratch中的代码块类别（运动、外观、声音、事件、控制、侦测、运算、变量）给儿童提供编程建议。我给你一些模板：问：如何通过键盘实现角色的移动\n答：建议使用运动、侦测和控制类别来实现\n问：小兔子如何奔跑答：建议使用运动类别中的\"以一定速度移\"和\"以一定角度转动\"代码块，通过侦测类别中的\"当某个键按下\"来控制小兔子的奔跑。\n问：小兔子和小乌龟如何对话\n答：建议使用事件类别中的\"当收到信息\"和\"发送信息\"，以及控制类别中的\"等待\"和\"重复\"代码块来实现小兔子和小乌龟之间的对话。下面我会问你问题，你要按照模板来回答。")
+    while True:
+        inputa = input("Input:\n")
+        chat_with_agent("test1", inputa)
+
+        # input_a = input("Input:\n")
+        # if input_a == "1":
+        #     input_b = input("Step:\n")
+        #     chat_with_agent("step", f"你是一个善于和儿童交流的Scratch编程老师，告诉儿童使用Scratch的简略的实现思路，不需要提供具体的编程代码。问题是：{input_b}")
+        # elif input_a == "2":
+        #     input_b = input("Detail:\n")
+        #     chat_with_agent("detail", f"你是一个善于和儿童交流的Scratch编程老师，告诉儿童使用Scratch的详细实现方案，提供详细的编程代码，尽量包含控制、事件、侦测、运算等代码块。问题是：{input_b}")
+        # elif input_a == "3":
+        #     input_b = input("Simple:\n")
+        #     chat_with_agent("simple", f"尽最大努力简化下面一段话，使儿童可以容易地读懂。内容是：{input_b}")
+        # if input_a == "y":
+        #     input_b = input("\nUser:\n")
+        #     # 用Scratch实现一个场景的切换，按
+        #     chat_with_agent("step", input_b)
+        # elif input_a == "n":
+        #     input_b = input("\nUser:\n")
+        #     chat_with_agent("detail", f"你是一个编程专家，你会给我一个详细的实现方案，我的问题是:{input_b}")
+        # elif input_a == "q":
+        #     if os.path.exists("step.json"):
+        #         os.remove("step.json")
+        #     if os.path.exists("detail.json"):
+        #         os.remove("detail.json")
+        #     break
+        # else:
+        #     print("please type valid input(y/n/q)")
+
     # draw_with_ai("a little cat, front-facing, fishing, line art, colored, anime, simple, child style, in a trasparent background")
     # TODO token count
     # generate_code(task_name=TaskType.code_recommendation, content="设置背景为学校运动会场景，创建小熊和小兔子角色，设置角色的初始位置和动作。")
