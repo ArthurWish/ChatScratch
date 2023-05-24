@@ -122,8 +122,22 @@ def message_agent(task, message):
 
     return agent_reply, messages
 
+
 def init_agent(agent_name, message):
-    pass 
+    pass
+
+
+def chat_no_memory(message):
+    messages = []
+    messages.append({"role": "user", "content": message})
+    agent_reply = create_chat_completion(
+        model="gpt-3.5-turbo",
+        messages=messages,
+    )
+    print(agent_reply)
+    return agent_reply
+
+
 def chat_with_agent(agent_name, message):
     agent_memory = f"{agent_name}.json"
     # init agent
@@ -151,10 +165,11 @@ def chat_with_agent(agent_name, message):
             json.dump(messages, f, ensure_ascii=False)
     print(agent_reply)
     if agent_name == "step":
-        print(agent_reply+"你能按照这个方案来编程吗？")
+        print(agent_reply + "你能按照这个方案来编程吗？")
     elif agent_name == "detail":
-        print("当然，我可以给你一个参考:\n"+agent_reply)
-        
+        print("当然，我可以给你一个参考:\n" + agent_reply)
+
+
 def chat_with_ai(task):
     global agents
     task, messages, model = agents[task]
@@ -251,7 +266,72 @@ if __name__ == "__main__":
     # main()
     # input_1 = input("模拟输入儿童的问题:\n")
 
-    chat_with_agent("test1", f"你是一个Scratch编程老师。请用Scratch中的代码块类别（运动、外观、声音、事件、控制、侦测、运算、变量）给儿童提供编程建议。我给你一些模板：问：如何通过键盘实现角色的移动\n答：建议使用运动、侦测和控制类别来实现\n问：小兔子如何奔跑答：建议使用运动类别中的\"以一定速度移\"和\"以一定角度转动\"代码块，通过侦测类别中的\"当某个键按下\"来控制小兔子的奔跑。\n问：小兔子和小乌龟如何对话\n答：建议使用事件类别中的\"当收到信息\"和\"发送信息\"，以及控制类别中的\"等待\"和\"重复\"代码块来实现小兔子和小乌龟之间的对话。下面我会问你问题，你要按照模板来回答。")
+    text = f"""
+    如何使乌龟在跑过终点的时候，兔子停下并说话？
+    """
+    prompt = f"""你是一个专业的Scratch编程老师。
+1-请使用Scratch代码块类别回答下面用<>括起来的问题。
+2-推荐每个代码块类别具体的代码块。
+
+请使用以下格式：
+问题：<要回答的问题>
+类别：<所有的代码块的类别>
+指导：<所有的具体的代码块>
+名称：<回答所有代码块在Scratch3.0中的名称>
+输出 JSON：<带有 类别 和 指导 的 JSON>
+
+Text: <{text}>
+"""
+    prompt = f"""
+你是一个专业的Scratch编程老师。你的任务是以一致的风格回答问题。
+
+<孩子>: 如何实现点击角色，使角色变色？
+
+<老师>: 使用"when this sprite clicked","change color effect by [0.25]"
+
+<孩子>: 如何实现点击角色，使角色跳舞？
+
+<老师>: 使用"when this sprite clicked","move [10] stpes","play drum [Snare drum] for [0.25] beats","move [-10] steps","play drum [Closed Hi-Hat] for [0.25] beats"
+
+<孩子>: 如何实现点击角色，使角色变大和缩小？
+"""
+    prompt = """
+你是一个专业的Scratch编程老师。你的任务是以一致的风格回答问题。
+{"prompt":"点击角色，使角色变色 ->","completion":" \"when this sprite clicked\",\"change [color] effect by [25]\"\n"}
+{"prompt":"点击角色，使角色一直旋转 ->","completion":" \"when this sprite clicked\",\"repeat [10]\",\"turn [18] degrees\"\n"}
+{"prompt":"点击角色，播放音效 ->","completion":" \"when this sprite clicked\",\"play sound [Guitar Strum] until done\" \n"}
+{"prompt":"点击角色，使角色跳舞 ->","completion":" \"when this sprite clicked\",\"move [10] steps\",\"play\"\n"}
+{"prompt":"点击绿旗，改变背景并使角色说话 ->","completion":" \"when gree flag clicked\",\"switch backdrop to [Savanna]\",\"wait [2] seconds\",\"switch backdrop to [Metro]\",\"say [Let's explore] for [2] seconds\"\n"}
+{"prompt":"点击绿旗，播放声音并切换costume ->","completion":" \"when green flag clicked\",\"start sound [your recording]\",\"next costume\",\"say [] for [2] seconds\"\n"}
+{"prompt":"点击绿旗，如果触碰到角色就播放声音 ->","completion":" \"when green flag clicked\",\"forever\",\"if touching [star] then\",\"play sound [Collect] until done\"\n"}
+我的问题是{"prompt":"当接收到广播(下一个背景)，背景换成大海"}
+"""
+    #     prompt = f"""
+    # 你的任务是以一致的风格回答问题。
+
+    # <孩子>: 教我耐心。
+
+    # <祖父母>: 挖出最深峡谷的河流源于一处不起眼的泉眼；最宏伟的交响乐从单一的音符开始；最复杂的挂毯以一根孤独的线开始编织。
+
+    # <孩子>: 教我韧性。
+    # """
+    chat_no_memory(prompt)
+    exit(0)
+    prompt_dict = json.load(open("assets/prompt.json", "r", encoding="gbk"))
+    # print(prompt_dict)
+    code_main = chat_no_memory(prompt_dict["code_main"].replace(
+        "content", "兔子和乌龟赛跑"))
+    code_d1 = chat_no_memory(prompt_dict["code_d1"].replace(
+        "content", code_main))
+    code_d2 = chat_no_memory(prompt_dict["code_d2"].replace(
+        "content", code_d1))
+    simple = chat_no_memory(prompt_dict["simplifying"].replace(
+        "content", code_d2))
+
+    chat_with_agent(
+        "test1",
+        f"你是一个Scratch编程老师。请用Scratch中的代码块类别（运动、外观、声音、事件、控制、侦测、运算、变量）给儿童提供编程建议。我给你一些模板：问：如何通过键盘实现角色的移动\n答：建议使用运动、侦测和控制类别来实现\n问：小兔子如何奔跑答：建议使用运动类别中的\"以一定速度移\"和\"以一定角度转动\"代码块，通过侦测类别中的\"当某个键按下\"来控制小兔子的奔跑。\n问：小兔子和小乌龟如何对话\n答：建议使用事件类别中的\"当收到信息\"和\"发送信息\"，以及控制类别中的\"等待\"和\"重复\"代码块来实现小兔子和小乌龟之间的对话。下面我会问你问题，你要按照模板来回答。"
+    )
     while True:
         inputa = input("Input:\n")
         chat_with_agent("test1", inputa)
