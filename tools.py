@@ -102,6 +102,9 @@ def cal_similarity(reply_list, blocks):
         if "wait" in str and "second" in str:
             block_list.append("control_wait")
             continue
+        if "if" in str:
+            block_list.append("control_if_else")
+            continue
         similarity, max_similarity = 0, 0
         temp_block = ""
         for value in asdict(blocks).values():

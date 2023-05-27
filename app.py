@@ -12,7 +12,6 @@ CORS(app)
 os.makedirs("static", exist_ok=True)
 MODEL = "gpt-3.5-turbo"
 story_memory = []
-# prompt = "当接收到广播(下一个背景)，背景换成大海"
 
 motion_blocks = MotionBlocks()
 looks_blocks = LooksBlocks()
@@ -22,39 +21,6 @@ control_blocks = ControlBlocks()
 sensing_blocks = SensingBlocks()
 ass_block = AssembleBlocks(motion_blocks, looks_blocks, sound_blocks,
                            events_blocks, control_blocks, sensing_blocks)
-
-
-# 对话之前的引导问题，转语音
-@dataclass
-class StoryTelling:
-    role = ""
-    location = ""
-    event = ""
-
-
-@dataclass
-class StoryDrawing:
-    pass
-
-
-def init_story():
-    story_memory.append({
-        "role":
-        "user",
-        "content":
-        "你是一个儿童故事作家，我在写一个由起因、经过、结果三个部分构成的故事，每一个部分只有一句话。我的故事的起因是:input。我说完之后请以赞美的语气跟我互动。"
-    })
-    agent_reply = create_chat_completion(
-        model=MODEL,
-        messages=story_memory,
-    )
-    print("agent: ", agent_reply)
-    text_to_speech(agent_reply)
-    story_memory.append({"role": "assistant", "content": agent_reply})
-
-
-# init_story()
-
 
 @app.route('/get_audio')
 def get_audio():
@@ -83,9 +49,42 @@ def chat_speech():
     text_to_speech(agent_reply)
     return agent_reply
 
+@app.route('/generate_story', methods=['GET', 'POST'])
+def generate_story():
+    # TODO finish this prompt
+    temp_memory = []
+    temp_memory.append({
+        "role":
+        "user",
+        "content":
+        f"""你是一个儿童故事作家。我在写一个
+        """
+    })
+    # print(temp_memory)
+    agent_reply = create_chat_completion(model=MODEL,
+                                         messages=temp_memory,
+                                         temperature=0)
+    print("agent: ", agent_reply)
 
-@app.route('/chat_story', methods=['GET', 'POST'])
-def chat_story():
+@app.route('/generate_draw', methods=['GET', 'POST'])
+def generate_draw():
+    # TODO finish this prompt
+    temp_memory = []
+    temp_memory.append({
+        "role":
+        "user",
+        "content":
+        f"""
+        """
+    })
+    # print(temp_memory)
+    agent_reply = create_chat_completion(model=MODEL,
+                                         messages=temp_memory,
+                                         temperature=0)
+    print("agent: ", agent_reply)
+
+@app.route('/split_story', methods=['GET', 'POST'])
+def split_story():
     # data format: json
     data = request.json
     part = data['part']  # 获取part字段的值
@@ -101,7 +100,7 @@ def chat_story():
         "role":
         "user",
         "content":
-        f"""你是一个专业的Scratch编程老师。我有一个故事梗概：第{part}幕，角色：{role}，场景：{background}，事件：{event}。我要根据这个故事来创建Scratch3.0项目，目前我有一些基础事件的Scratch实现：发出声音、键盘控制移动、点击角色发光、发出广播切换场景，请告诉我在{event}中，可以用到哪些事件，你的目标是参考事件来使Scratch代码丰富且富有创意。
+        f"""你是一个专业的Scratch编程老师。我有一个故事梗概：第{part}幕，角色：{role}，场景：{background}，事件：{event}。我要根据这个故事来创建Scratch3.0项目，目前我有一些基础事件的Scratch实现：发出声音、键盘控制移动、点击角色发光、发出广播切换场景等，在{event}中，生成3个最有价值的Scratch代码，你的目标是参考事件来使Scratch代码丰富且富有创意。
         """
     })
     agent_reply = create_chat_completion(model=MODEL,
@@ -111,23 +110,13 @@ def chat_story():
     return agent_reply
 
 
-@app.route('/chat_image')
-def chat_image():
-    pass
-
-
-@app.route('/chat_code')
-def chat_code():
-    pass
-
-
 @app.route('/send_audio')
 def send_audio():
     pass
 
 
-@app.route('/chat_once', methods=['GET', 'POST'])
-def chat_once():
+@app.route('/generate_code', methods=['GET', 'POST'])
+def generate_code():
     data = request.json
     role_number = 2
     roles = ["兔子", "乌龟"]
@@ -145,7 +134,7 @@ def chat_once():
                                          messages=temp_memory,
                                          temperature=0)
     print("agent: ", agent_reply)
-    with open("static/agent_reply.txt", "w") as f:
+    with open("static/agent_reply.txt", "w", encoding='utf-8') as f:
         f.write(agent_reply)
     extracted_reply = extract_keywords(agent_reply)
     block_list = cal_similarity(extracted_reply, ass_block)
@@ -154,11 +143,6 @@ def chat_once():
         list_str = '\n'.join(str(element) for element in block_list)
         f.write(list_str)
     return block_list
-
-
-@app.route("/index")
-def index():
-    return render_template("demo.html")
 
 
 if __name__ == '__main__':
