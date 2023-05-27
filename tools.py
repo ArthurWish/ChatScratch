@@ -2,6 +2,7 @@ import Levenshtein as lv
 from block_types import *
 from dataclasses import asdict
 from typing import List
+from chat import create_chat_completion
 
 PROMPT = """
 {"prompt":"点击角色，使角色变色 ->","completion":" \"when this sprite clicked\",\"change [color] effect by [25]\"\n"}
@@ -96,11 +97,16 @@ def cal_similarity(reply_list, blocks):
     # 计算相似度
     block_list = []
     for str in reply_list:
+        if str == "end" or str == "else":
+            continue
+        if "wait" in str and "second" in str:
+            block_list.append("control_wait")
+            continue
         similarity, max_similarity = 0, 0
         temp_block = ""
         for value in asdict(blocks).values():
             similarity = [lv.ratio(str, v) for v in value]
-            max_value = max(similarity) 
+            max_value = max(similarity)
             max_index = similarity.index(max_value)
             block_by_index = list(value.items())[max_index][1]
             # similarity = lv.ratio(str, value)
@@ -115,6 +121,17 @@ def cal_similarity(reply_list, blocks):
 def init_code_agent():
     pass
 
+
+def question_and_relpy(question):
+    messages = []
+    messages.append({"role": "user", "content": question})
+    agent_reply = create_chat_completion(
+        model="gpt-3.5-turbo",
+        messages=messages,
+    )
+    # messages.append({"role": "assistant", "content": agent_reply})
+    return agent_reply
+
 if __name__ == "__main__":
     agent_reply = '"when green flag clicked","say [你追我啊] for [2] seconds","repeat until <touching [rabbit]>","move [10] steps","end","play sound [Boing] until done"'
     extracted_reply = extract_keywords(agent_reply)
@@ -125,6 +142,7 @@ if __name__ == "__main__":
     events_blocks = EventsBlocks()
     control_blocks = ControlBlocks()
     sensing_blocks = SensingBlocks()
-    ass_block = AssembleBlocks(motion_blocks, looks_blocks, sound_blocks, events_blocks, control_blocks, sensing_blocks)
+    ass_block = AssembleBlocks(motion_blocks, looks_blocks, sound_blocks,
+                               events_blocks, control_blocks, sensing_blocks)
     block_list = cal_similarity(extracted_reply, ass_block)
     print(block_list)

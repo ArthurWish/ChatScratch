@@ -9,7 +9,7 @@ from tools import *
 
 app = Flask(__name__)
 CORS(app)
-os.makedirs("public", exist_ok=True)
+os.makedirs("static", exist_ok=True)
 MODEL = "gpt-3.5-turbo"
 story_memory = []
 # prompt = "当接收到广播(下一个背景)，背景换成大海"
@@ -58,7 +58,7 @@ def init_story():
 
 @app.route('/get_audio')
 def get_audio():
-    return send_file('public/story.mp3', mimetype='audio/mp3')
+    return send_file('static/story.mp3', mimetype='audio/mp3')
 
 
 @app.route('/chat_speech', methods=['POST'])
@@ -77,10 +77,37 @@ def chat_speech():
     )
     print("agent: ", agent_reply)
     story_memory.append({"role": "user", "content": speech_content})
-    with open("public/storytelling.json", "w") as f:
+    with open("static/storytelling.json", "w") as f:
         json.dump(story_memory, f, ensure_ascii=False)
     # agent reply to audio
     text_to_speech(agent_reply)
+    return agent_reply
+
+
+@app.route('/chat_story', methods=['GET', 'POST'])
+def chat_story():
+    # data format: json
+    data = request.json
+    part = data['part']  # 获取part字段的值
+    role = data['role']  # 获取role字段的值
+    background = data['background']  # 获取background字段的值
+    event = data['event']  # 获取event字段的值
+    try:
+        audio = request.files['audio']  # 获取上传的音频文件对象
+    except:
+        print("not audio found!")
+    temp_memory = []
+    temp_memory.append({
+        "role":
+        "user",
+        "content":
+        f"""你是一个专业的Scratch编程老师。我有一个故事梗概：第{part}幕，角色：{role}，场景：{background}，事件：{event}。我要根据这个故事来创建Scratch3.0项目，目前我有一些基础事件的Scratch实现：发出声音、键盘控制移动、点击角色发光、发出广播切换场景，请告诉我在{event}中，可以用到哪些事件，你的目标是参考事件来使Scratch代码丰富且富有创意。
+        """
+    })
+    agent_reply = create_chat_completion(model=MODEL,
+                                         messages=temp_memory,
+                                         temperature=0)
+    print("agent: ", agent_reply)
     return agent_reply
 
 
@@ -102,7 +129,9 @@ def send_audio():
 @app.route('/chat_once', methods=['GET', 'POST'])
 def chat_once():
     data = request.json
-    prompt = data.get('prompt')
+    role_number = 2
+    roles = ["兔子", "乌龟"]
+    prompt = data['prompt']
     temp_memory = []
     temp_memory.append({
         "role":
@@ -116,15 +145,12 @@ def chat_once():
                                          messages=temp_memory,
                                          temperature=0)
     print("agent: ", agent_reply)
-    with open(r"C:\Users\YunNong\Desktop\scratch-gui\public\agent_reply.txt",
-              "w") as f:
+    with open("static/agent_reply.txt", "w") as f:
         f.write(agent_reply)
     extracted_reply = extract_keywords(agent_reply)
     block_list = cal_similarity(extracted_reply, ass_block)
-    print(block_list)
-    with open(
-            r"C:\Users\YunNong\Desktop\scratch-gui\public\block_suggestion.txt",
-            'w') as f:
+    # print(block_list)
+    with open("static/block_suggestion.txt", 'w') as f:
         list_str = '\n'.join(str(element) for element in block_list)
         f.write(list_str)
     return block_list
@@ -136,4 +162,4 @@ def index():
 
 
 if __name__ == '__main__':
-    app.run()
+    app.run(host='0.0.0.0', port=5000)
