@@ -1,8 +1,12 @@
+import configparser
 import Levenshtein as lv
+import requests
 from block_types import *
 from dataclasses import asdict
 from typing import List
 from chat import create_chat_completion
+import openai
+from base64 import b64decode
 
 PROMPT = """
 {"prompt":"点击角色，使角色变色 ->","completion":" \"when this sprite clicked\",\"change [color] effect by [25]\"\n"}
@@ -135,7 +139,74 @@ def question_and_relpy(question):
     # messages.append({"role": "assistant", "content": agent_reply})
     return agent_reply
 
+def generate_draw_with_dalle(prompt, name):
+    response = openai.Image.create(prompt=prompt,
+                                   n=1,
+                                   size="256x256",
+                                   response_format="b64_json")
+    for index, image_dict in enumerate(response["data"]):
+        image_data = b64decode(image_dict["b64_json"])
+        image_file = f"static/{name}.png"
+        with open(image_file, mode="wb") as png:
+            png.write(image_data)
+
+def get_auth_from_stability():
+    url = f"https://api.stability.ai/v1/user/account"
+    conf = configparser.ConfigParser()
+    conf.read("./envs/keys.ini")
+    api_key = conf.get("stability", "api")
+    response = requests.get(url, headers={
+    "Authorization": f"Bearer {api_key}"
+})
+    if response.status_code != 200:
+        raise Exception("Non-200 response: " + str(response.text))
+    payload = response.json()
+
+
+def generate_draw_with_stable(prompt, name):
+    engine_id = "stable-diffusion-v1-5"
+    api_host = 'https://api.stability.ai'
+    conf = configparser.ConfigParser()
+    conf.read("./envs/keys.ini")
+    api_key = conf.get("stability", "api")
+
+    if api_key is None:
+        raise Exception("Missing Stability API key.")
+    
+    response = requests.post(
+    f"{api_host}/v1/generation/{engine_id}/text-to-image",
+    headers={
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+        "Authorization": f"Bearer {api_key}"
+    },
+    json={
+        "text_prompts": [
+            {
+                "text": f"{prompt}"
+            }
+        ],
+        "cfg_scale": 7,
+        "clip_guidance_preset": "FAST_BLUE",
+        "height": 512,
+        "width": 512,
+        "samples": 1,
+        "steps": 30,
+    },
+)
+    if response.status_code != 200:
+        raise Exception("Non-200 response: " + str(response.text))
+
+    data = response.json()
+
+    for i, image in enumerate(data["artifacts"]):
+        with open(f"./static/{name}.png", "wb") as f:
+            f.write(b64decode(image["base64"]))
+
 if __name__ == "__main__":
+    generate_draw_with_dalle("Forest with running track at the end, featuring trees and a running track. Line art, anime, colored, child style.", "2-b")
+    # generate_draw_with_stable("A red tiger facing left with a transparent background, anime style, and colored.", "1")
+    exit(0)
     agent_reply = '"when green flag clicked","say [你追我啊] for [2] seconds","repeat until <touching [rabbit]>","move [10] steps","end","play sound [Boing] until done"'
     extracted_reply = extract_keywords(agent_reply)
     print(extracted_reply)

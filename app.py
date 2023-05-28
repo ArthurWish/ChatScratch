@@ -51,13 +51,14 @@ def chat_speech():
 
 @app.route('/generate_story', methods=['GET', 'POST'])
 def generate_story():
-    # TODO finish this prompt
+    data = request.json
+    story = data['story']
     temp_memory = []
     temp_memory.append({
         "role":
         "user",
         "content":
-        f"""你是一个儿童故事作家。我在写一个
+        f"""你是一个辅助儿童完成故事的编剧，儿童在写一个一句话的故事，故事需要包括[人物、场景、事件]。请你给出四种符合故事逻辑的事件供我选择，每种都用一句话。儿童讲述的内容是：{story}
         """
     })
     # print(temp_memory)
@@ -65,23 +66,41 @@ def generate_story():
                                          messages=temp_memory,
                                          temperature=0)
     print("agent: ", agent_reply)
+    return agent_reply
 
-@app.route('/generate_draw', methods=['GET', 'POST'])
-def generate_draw():
-    # TODO finish this prompt
+@app.route('/generate_drawing', methods=['GET', 'POST'])
+def generate_role_draw():
+    data = request.json
+    drawing_type = data["type"]
+    drawing_content = data["content"]
     temp_memory = []
-    temp_memory.append({
+    if drawing_type == "role":
+        temp_memory.append({
         "role":
         "user",
         "content":
-        f"""
+        f"""我想让你充当 Stable diffusion 的人工智能程序的提示生成器。你的工作是提供简短的描述。这里有一个关于动画风格角色的描述<{drawing_content}>，你需要根据<描述>决定：角色是什么，角色的朝向，角色的姿态。
+        你的输出还需要加上"line art, in a transparent background, anime, colored, child style"，只需要输出最终的提示词，翻译为英文。
         """
     })
+    elif drawing_type == "background":
+        temp_memory.append({
+        "role":
+        "user",
+        "content":
+        f"""我想让你充当 Stable diffusion 的人工智能程序的提示生成器。你的工作是提供简短的描述。这里有一个关于动画风格背景的描述<{drawing_content}>，你需要根据<描述>决定：场景发生的地方，重点的景物。
+        你的输出还需要加上"line art, anime, colored, child style"，只需要输出最终的提示词，翻译为英文。
+        """
+    })
+    else:
+        raise "Not valid drawing type"    
     # print(temp_memory)
     agent_reply = create_chat_completion(model=MODEL,
                                          messages=temp_memory,
                                          temperature=0)
     print("agent: ", agent_reply)
+    generate_draw_with_dalle(agent_reply, drawing_type)
+    return agent_reply
 
 @app.route('/split_story', methods=['GET', 'POST'])
 def split_story():
