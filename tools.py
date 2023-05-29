@@ -145,7 +145,7 @@ def generate_draw_with_dalle(prompt, name):
                                    size="256x256",
                                    response_format="b64_json")
     for index, image_dict in enumerate(response["data"]):
-        image_data = b64decode(image_dict["b64_json"])
+        image_data = b64decode(image_dict["b64_json"]) # return 
         image_file = f"static/{name}.png"
         with open(image_file, mode="wb") as png:
             png.write(image_data)

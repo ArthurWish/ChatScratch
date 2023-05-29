@@ -1,12 +1,12 @@
+import base64
 from flask import Flask, Response, jsonify, redirect, request, send_file, send_from_directory, render_template
 from speech import speech_to_text, text_to_speech
 import os
 import json
-from chat import create_chat_completion, chat_with_agent
-from dataclasses import dataclass
+from chat import create_chat_completion
 from flask_cors import CORS
 from tools import *
-
+from pydub import AudioSegment
 app = Flask(__name__)
 CORS(app)
 os.makedirs("static", exist_ok=True)
@@ -22,9 +22,16 @@ sensing_blocks = SensingBlocks()
 ass_block = AssembleBlocks(motion_blocks, looks_blocks, sound_blocks,
                            events_blocks, control_blocks, sensing_blocks)
 
-@app.route('/get_audio')
+@app.route('/get_audio', methods=['GET', 'POST'])
 def get_audio():
-    return send_file('static/story.mp3', mimetype='audio/mp3')
+    data = request.json
+    part = data['id']
+    type = data['type']
+    blob_data = json['blob']
+    audio_bytes = base64.b64decode(blob_data)
+    audio_segment = AudioSegment.from_file_using_temporary_files(audio_bytes)
+    audio_segment.export(f'static/{part-type}.mp3', format='mp3')
+    return "success"
 
 
 @app.route('/chat_speech', methods=['POST'])
@@ -52,15 +59,37 @@ def chat_speech():
 @app.route('/generate_story', methods=['GET', 'POST'])
 def generate_story():
     data = request.json
-    story = data['story']
+    id = data['id']
+    role = data['role']
+    background = data['background']
+    event = data['event']
     temp_memory = []
-    temp_memory.append({
-        "role":
-        "user",
-        "content":
-        f"""你是一个辅助儿童完成故事的编剧，儿童在写一个一句话的故事，故事需要包括[人物、场景、事件]。请你给出四种符合故事逻辑的事件供我选择，每种都用一句话。儿童讲述的内容是：{story}
-        """
-    })
+    if role is None:
+        temp_memory.append({
+            "role":
+            "user",
+            "content":
+            f"""你是一个辅助儿童完成故事的编剧，儿童在写一个一句话的故事，故事需要包括人物。请你给我四个人物，人物要符合儿童的认知。
+            """
+        })
+    elif role is not None and background is None:
+        temp_memory.append({
+            "role":
+            "user",
+            "content":
+            f"""你是一个辅助儿童完成故事的编剧，儿童在写一个一句话的故事，故事需要包括[人物、场景]。请你给出四种符合故事逻辑的场景供我选择，每种都用一句话。儿童讲述的内容是：{role}
+            """
+        })
+    elif role is not None and background is not None and event is None:
+        temp_memory.append({
+            "role":
+            "user",
+            "content":
+            f"""你是一个辅助儿童完成故事的编剧，儿童在写一个一句话的故事，故事需要包括[人物、场景、事件]。请你给出四种符合故事逻辑的事件供我选择，每种都用一句话。儿童讲述的内容是：{role}、{background}
+            """
+        })
+    else:
+        raise "Not valid input, please check"
     # print(temp_memory)
     agent_reply = create_chat_completion(model=MODEL,
                                          messages=temp_memory,
@@ -93,7 +122,7 @@ def generate_role_draw():
         """
     })
     else:
-        raise "Not valid drawing type"    
+        raise "Not valid drawing type"
     # print(temp_memory)
     agent_reply = create_chat_completion(model=MODEL,
                                          messages=temp_memory,
@@ -137,8 +166,6 @@ def send_audio():
 @app.route('/generate_code', methods=['GET', 'POST'])
 def generate_code():
     data = request.json
-    role_number = 2
-    roles = ["兔子", "乌龟"]
     prompt = data['prompt']
     temp_memory = []
     temp_memory.append({
