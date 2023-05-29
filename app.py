@@ -7,11 +7,13 @@ from chat import create_chat_completion
 from flask_cors import CORS
 from tools import *
 from pydub import AudioSegment
+from story_dict import StoryInfo
 app = Flask(__name__)
 CORS(app)
 os.makedirs("static", exist_ok=True)
 MODEL = "gpt-3.5-turbo"
 story_memory = []
+story_info = StoryInfo()
 
 motion_blocks = MotionBlocks()
 looks_blocks = LooksBlocks()
@@ -24,14 +26,24 @@ ass_block = AssembleBlocks(motion_blocks, looks_blocks, sound_blocks,
 
 @app.route('/get_audio', methods=['GET', 'POST'])
 def get_audio():
-    data = request.json
-    part = data['id']
-    type = data['type']
-    blob_data = json['blob']
-    audio_bytes = base64.b64decode(blob_data)
-    audio_segment = AudioSegment.from_file_using_temporary_files(audio_bytes)
-    audio_segment.export(f'static/{part-type}.mp3', format='mp3')
-    return "success"
+    blob = request.files['file']
+    act  = request.form.get('act')
+    type = request.form.get('type')
+    blob.save(f'static/{act}+{type}.webm')
+    audio_file = open(f'static/{act}+{type}.webm', 'rb')
+    transcript = openai.Audio.transcribe("whisper-1", audio_file)
+    content = transcript["text"]
+    audio_file.close()
+    story_info.add(act,type,content)
+    return jsonify({'status': 'success', 'content': content})
+    # data = request.json
+    # part = data['id']
+    # type = data['type']
+    # blob_data = json['blob']
+    # audio_bytes = base64.b64decode(blob_data)
+    # audio_segment = AudioSegment.from_file_using_temporary_files(audio_bytes)
+    # audio_segment.export(f'static/{part-type}.mp3', format='mp3')
+    # return "success"
 
 
 @app.route('/chat_speech', methods=['POST'])
@@ -56,6 +68,10 @@ def chat_speech():
     text_to_speech(agent_reply)
     return agent_reply
 
+@app.route('/generate_role', methods=['GET', 'POST'])
+def generate_role():
+    
+    return 
 @app.route('/generate_story', methods=['GET', 'POST'])
 def generate_story():
     data = request.json
