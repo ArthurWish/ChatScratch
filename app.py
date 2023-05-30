@@ -68,8 +68,21 @@ def chat_speech():
     text_to_speech(agent_reply)
     return agent_reply
 
-@app.route('/generate_role', methods=['GET', 'POST'])
-def generate_role():
+@app.route('/generate', methods=['GET', 'POST'])
+
+def generate():
+    id  = request.form.get('id')
+    askterm = request.form.get('askterm')
+    temp_memory = []
+    temp_memory.append(story_info.get_prompt(int(id),askterm))
+    agent_reply = create_chat_completion(model=MODEL,
+                                         messages=temp_memory,
+                                         temperature=0)
+    print("agent: ", agent_reply)
+    
+    
+        
+    
     
     return 
 @app.route('/generate_story', methods=['GET', 'POST'])
