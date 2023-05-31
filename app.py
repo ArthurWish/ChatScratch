@@ -8,6 +8,7 @@ from flask_cors import CORS
 from tools import *
 from pydub import AudioSegment
 from story_dict import StoryInfo
+
 app = Flask(__name__)
 CORS(app)
 os.makedirs("static", exist_ok=True)
@@ -24,26 +25,38 @@ sensing_blocks = SensingBlocks()
 ass_block = AssembleBlocks(motion_blocks, looks_blocks, sound_blocks,
                            events_blocks, control_blocks, sensing_blocks)
 
+
+@app.route('/test_set', methods=['GET', 'POST'])
+def test_set():
+    act = request.form.get('act')
+    type = request.form.get('type')
+    content = request.form.get('content')
+    story_info.add(act, type, content)
+    # story_info.print_act('act1')
+    # print(story_info.get_prompt(0, "background"))
+    return "s"
+
+
+@app.route('/test_query', methods=['GET', 'POST'])
+def test_query():
+    id = request.form.get("id")
+    ask_term = request.form.get('ask_term')
+    # story_info.get_prompt(0, "background")
+    return story_info.get_prompt(id, ask_term)
+
+
 @app.route('/get_audio', methods=['GET', 'POST'])
 def get_audio():
     blob = request.files['file']
-    act  = request.form.get('act')
+    act = request.form.get('act')
     type = request.form.get('type')
     blob.save(f'static/{act}+{type}.webm')
     audio_file = open(f'static/{act}+{type}.webm', 'rb')
     transcript = openai.Audio.transcribe("whisper-1", audio_file)
     content = transcript["text"]
     audio_file.close()
-    story_info.add(act,type,content)
+    story_info.add(act, type, content)
     return jsonify({'status': 'success', 'content': content})
-    # data = request.json
-    # part = data['id']
-    # type = data['type']
-    # blob_data = json['blob']
-    # audio_bytes = base64.b64decode(blob_data)
-    # audio_segment = AudioSegment.from_file_using_temporary_files(audio_bytes)
-    # audio_segment.export(f'static/{part-type}.mp3', format='mp3')
-    # return "success"
 
 
 @app.route('/chat_speech', methods=['POST'])
@@ -68,23 +81,23 @@ def chat_speech():
     text_to_speech(agent_reply)
     return agent_reply
 
-@app.route('/generate', methods=['GET', 'POST'])
 
+@app.route('/generate', methods=['GET', 'POST'])
 def generate():
-    id  = request.form.get('id')
+    # return 4 audio files and 4 images
+    output = {'sounds': [], 'images': []}
+    id = request.form.get('id')
     askterm = request.form.get('askterm')
     temp_memory = []
-    temp_memory.append(story_info.get_prompt(int(id),askterm))
+    temp_memory.append(story_info.get_prompt(int(id), askterm))
     agent_reply = create_chat_completion(model=MODEL,
                                          messages=temp_memory,
                                          temperature=0)
     print("agent: ", agent_reply)
-    
-    
-        
-    
-    
-    return 
+
+    return
+
+
 @app.route('/generate_story', methods=['GET', 'POST'])
 def generate_story():
     data = request.json
@@ -126,6 +139,7 @@ def generate_story():
     print("agent: ", agent_reply)
     return agent_reply
 
+
 @app.route('/generate_drawing', methods=['GET', 'POST'])
 def generate_role_draw():
     data = request.json
@@ -134,22 +148,22 @@ def generate_role_draw():
     temp_memory = []
     if drawing_type == "role":
         temp_memory.append({
-        "role":
-        "user",
-        "content":
-        f"""我想让你充当 Stable diffusion 的人工智能程序的提示生成器。你的工作是提供简短的描述。这里有一个关于动画风格角色的描述<{drawing_content}>，你需要根据<描述>决定：角色是什么，角色的朝向，角色的姿态。
+            "role":
+            "user",
+            "content":
+            f"""我想让你充当 Stable diffusion 的人工智能程序的提示生成器。你的工作是提供简短的描述。这里有一个关于动画风格角色的描述<{drawing_content}>，你需要根据<描述>决定：角色是什么，角色的朝向，角色的姿态。
         你的输出还需要加上"line art, in a transparent background, anime, colored, child style"，只需要输出最终的提示词，翻译为英文。
         """
-    })
+        })
     elif drawing_type == "background":
         temp_memory.append({
-        "role":
-        "user",
-        "content":
-        f"""我想让你充当 Stable diffusion 的人工智能程序的提示生成器。你的工作是提供简短的描述。这里有一个关于动画风格背景的描述<{drawing_content}>，你需要根据<描述>决定：场景发生的地方，重点的景物。
+            "role":
+            "user",
+            "content":
+            f"""我想让你充当 Stable diffusion 的人工智能程序的提示生成器。你的工作是提供简短的描述。这里有一个关于动画风格背景的描述<{drawing_content}>，你需要根据<描述>决定：场景发生的地方，重点的景物。
         你的输出还需要加上"line art, anime, colored, child style"，只需要输出最终的提示词，翻译为英文。
         """
-    })
+        })
     else:
         raise "Not valid drawing type"
     # print(temp_memory)
@@ -159,6 +173,7 @@ def generate_role_draw():
     print("agent: ", agent_reply)
     generate_draw_with_dalle(agent_reply, drawing_type)
     return agent_reply
+
 
 @app.route('/split_story', methods=['GET', 'POST'])
 def split_story():
