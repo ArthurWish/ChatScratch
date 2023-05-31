@@ -1,17 +1,17 @@
 class StoryInfo:
     def __init__(self):
         self.acts = {
-            'act1': {
+            '1': {
                 'role': [],
                 'background': [],
                 'event': []
             },
-            'act2': {
+            '2': {
                 'role': [],
                 'background': [],
                 'event': []
             },
-            'act3': {
+            '3': {
                 'role': [],
                 'background': [],
                 'event': []
@@ -66,32 +66,32 @@ class StoryInfo:
             str2 = f'目前处于第1幕。'
             if askterm == 'role':
                 str3 = f'在第1幕中,'
-                str4 = '请你给出四种符合逻辑的角色描述供我选择。'
+                str4 = '请你给出四种符合故事逻辑的角色描述供我选择。'
             elif askterm == 'background':
                 role = self.get_act('act1', 'role')
                 str3 = f'在第1幕中,已经确定了角色是{role}。'
-                str4 = f'给出四种符合逻辑的场景描述供我选择。'
+                str4 = f'给出四种符合故事逻辑的场景描述供我选择。'
             else:
                 role = self.get_act('act1', 'role')
                 background = self.get_act('act1', 'background')
                 str3 = f'在第1幕中,已经确定了角色是{role},场景是{background}。'
-                str4 = '请你给出四种符合逻辑的事件描述供我选择。'
+                str4 = '请你给出四种符合故事逻辑的事件描述供我选择。'
         elif part_id == 2:
             act1 = self.get_act("act1")
             str2 = f"""之前已经确认的部分是：第1幕，{act1}。"""
             if askterm == 'role':
                 role_act1 = self.get_act("act1", "role")
                 str3 = f'在第1幕中,已经存在的角色是{role_act1}。'
-                str4 = f'根据第1幕，请你给出四种符合逻辑的角色描述供我选择。'
+                str4 = f'根据第1幕，请你给出四种符合故事逻辑的角色描述供我选择。'
             elif askterm == 'background':
                 role_act2 = self.get_act('act2', 'role')
                 str3 = f'在第2幕中,已经确定了角色是{role_act2}。'
-                str4 = f'根据第1幕，请你给出四种符合逻辑的场景描述供我选择。'
+                str4 = f'根据第1幕，请你给出四种符合故事逻辑的场景描述供我选择。'
             else:
                 role = self.get_act('act2', 'role')
                 background = self.get_act('act2', 'background')
                 str3 = f'在第2幕中,已经确定了角色是{role},场景是{background}。'
-                str4 = f'根据第1幕，请你给出四种符合逻辑的事件描述供我选择。'
+                str4 = f'根据第1幕，请你给出四种符合故事逻辑的事件描述供我选择。'
         elif part_id == 3:
             act1 = self.get_act("act1")
             act2 = self.get_act("act2")
@@ -99,16 +99,16 @@ class StoryInfo:
             if askterm == 'role':
                 role_act2 = self.get_act("act2", "role")
                 str3 = f'在第2幕中,已经存在的角色是{role_act2}。'
-                str4 = f'根据第1幕和第2幕，请你给出四种符合逻辑的角色描述供我选择。'
+                str4 = f'根据第1幕和第2幕，请你给出四种符合故事逻辑的角色描述供我选择。'
             elif askterm == 'background':
                 role = self.get_act('act3', 'role')
                 str3 = f'在第3幕中,已经确定了角色是{role}'
-                str4 = f'根据第1幕和第2幕，请你给出四种符合逻辑的场景描述供我选择。'
+                str4 = f'根据第1幕和第2幕，请你给出四种符合故事逻辑的场景描述供我选择。'
             else:
                 role = self.get_act('act3', 'role')
                 background = self.get_act('act3', 'background')
                 str3 = f'在第3幕中,已经确定了角色是{role},场景是{background}'
-                str4 = '根据第1幕和第2幕，请你给出四种符合逻辑的事件描述供我选择。'
+                str4 = '根据第1幕和第2幕，请你给出四种符合故事逻辑的事件描述供我选择。'
         content = str1 + str2 + str3 + str4
         return {"role": "user", "content": f"""{content}"""}
 
@@ -117,17 +117,17 @@ if __name__ == "__main__":
 
     story_info = StoryInfo()
     story_memory = []
-    story_info.add("act1", "role", "兔子")
-    story_info.add("act1", "background", "森林")
-    story_info.add("act1", "event", "兔子在森林里面跑步")
+    story_info.add("1", "role", "兔子")
+    story_info.add("1", "background", "森林")
+    story_info.add("1", "event", "兔子在森林里面跑步")
 
-    story_info.add("act2", "role", "花儿")
+    story_info.add("2", "role", "花儿")
     # story_info.add("act2", "role", "pig")
 
-    story_info.add("act2", "background", "小河边")
+    story_info.add("2", "background", "小河边")
     # story_info.add("act2", "event", "事件")
-    print(story_info.get_act("act1"))
-    print(story_info.get_act("act1", "role"))
+    print(story_info.get_act("1"))
+    print(story_info.get_act("1", "role"))
     # prompt = story_info.get_prompt("2", askterm="role")
     # print(prompt)
     prompt = story_info.get_prompt("2", askterm="event")

@@ -49,7 +49,9 @@ def test_query():
 def get_audio():
     blob = request.files['file']
     act = request.form.get('act')
+    assert act == "act1" or act == "act2" or act == "act3"
     type = request.form.get('type')
+    assert type == "role" or type == "background" or type == "event"
     blob.save(f'static/{act}+{type}.webm')
     audio_file = open(f'static/{act}+{type}.webm', 'rb')
     transcript = openai.Audio.transcribe("whisper-1", audio_file)
@@ -84,17 +86,39 @@ def chat_speech():
 
 @app.route('/generate', methods=['GET', 'POST'])
 def generate():
+    # input 2 modes
+    # mode 1: text none: generate 4 texts and 4 images
+    # mode 2: text exists: generate 4 images
     # return 4 audio files and 4 images
-    output = {'sounds': [], 'images': []}
     id = request.form.get('id')
+    assert id == "1" or id == "2" or id == "3"
     askterm = request.form.get('askterm')
+    assert askterm == "role" or askterm == "background" or askterm == "event"
+    output = {'sounds': [], 'images': []}
     temp_memory = []
-    temp_memory.append(story_info.get_prompt(int(id), askterm))
-    agent_reply = create_chat_completion(model=MODEL,
-                                         messages=temp_memory,
-                                         temperature=0)
-    print("agent: ", agent_reply)
+    # query
+    content = story_info.get_act(act_name=id, key=askterm)
+    if content == []:
+        prompt = story_info.get_prompt(id, askterm)
+        temp_memory.append(prompt)
+        agent_reply = create_chat_completion(model=MODEL,
+                                             messages=temp_memory,
+                                             temperature=0)
+        print("agent: ", agent_reply)
+        if '\n' not in agent_reply:
+            raise f"ERROR! Please check {agent_reply}"
+        reply_splited = split_to_parts(agent_reply)
 
+        for index, reply in enumerate(reply_splited):
+            text_to_speech(reply, f"sound-{index}")
+            # TODO 生成四幅
+            generate_draw(drawing_type=askterm, drawing_content=reply)
+
+    else:
+        type = ""
+        content = ""
+
+        generate_draw(type, content)
     return
 
 
@@ -140,11 +164,7 @@ def generate_story():
     return agent_reply
 
 
-@app.route('/generate_drawing', methods=['GET', 'POST'])
-def generate_role_draw():
-    data = request.json
-    drawing_type = data["type"]
-    drawing_content = data["content"]
+def generate_draw(drawing_type, drawing_content):
     temp_memory = []
     if drawing_type == "role":
         temp_memory.append({

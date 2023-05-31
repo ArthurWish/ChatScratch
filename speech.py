@@ -96,7 +96,7 @@ class Request:
         # print(self)
 
 
-def text_to_speech(text):
+def text_to_speech(text, file_name):
     req = Request()
     req.init(text)
     auth = Authorization()
@@ -131,7 +131,7 @@ def text_to_speech(text):
         return
     '''
     i = 1
-    wavfile = wave.open('static/answear.mp3', 'wb')
+    wavfile = wave.open(f'static/{file_name}.mp3', 'wb')
     wavfile.setparams((1, 2, 16000, 0, 'NONE', 'NONE'))
     for chunk in r.iter_content(1000):
         if (i == 1) & (str(chunk).find("Error") != -1):

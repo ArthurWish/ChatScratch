@@ -203,9 +203,38 @@ def generate_draw_with_stable(prompt, name):
         with open(f"./static/{name}.png", "wb") as f:
             f.write(b64decode(image["base64"]))
 
+def split_to_parts(reply: str):
+    lines = reply.split('\n')
+    reply_list = []
+    for line in lines:
+        if line.strip():
+            story = line.split('.', 1)[-1]  # 去掉编号部分
+            reply_list.append(story)
+
+    return reply_list
+    # print(lines[0])
+    # result = []
+    # for line in lines:
+    #     parts = line.split('：')
+    #     # 去掉编号部分
+    #     if len(parts) == 2:
+    #         parts[0] = parts[0].split('. ')[-1]
+    #     result.append(parts)
+
+    # # print(result)
+    # return result
+
+def test():
+    string = '1. 小明：一个勇敢的男孩，喜欢探险和冒险。他在森林里迷路了，正在寻找回家的路。\n2. 小芳：一个聪明的女孩，喜欢读书和学习。她在图书馆里发现了一本神秘的书，决定破解其中的谜题。\n3. 小华：一个善良的男孩，喜欢帮助别人。他在街上看到一个老奶奶摔倒了，决定去帮助她。\n4. 小玲：一个有想象力的女孩，喜欢画画和创作。她在花园里发现了一只神奇的小鸟，决定和它成为朋友。'
+    c = split_to_parts(string)
+    print(c)
+    # print(c[0][0])
+    # print(c[0][1])
+
 if __name__ == "__main__":
-    generate_draw_with_dalle("Forest with running track at the end, featuring trees and a running track. Line art, anime, colored, child style.", "2-b")
+    # generate_draw_with_dalle("Forest with running track at the end, featuring trees and a running track. Line art, anime, colored, child style.", "2-b")
     # generate_draw_with_stable("A red tiger facing left with a transparent background, anime style, and colored.", "1")
+    test()
     exit(0)
     agent_reply = '"when green flag clicked","say [你追我啊] for [2] seconds","repeat until <touching [rabbit]>","move [10] steps","end","play sound [Boing] until done"'
     extracted_reply = extract_keywords(agent_reply)
