@@ -34,7 +34,7 @@ def test_set():
     story_info.add(act, type, content)
     # story_info.print_act('act1')
     # print(story_info.get_prompt(0, "background"))
-    return "s"
+    return [act, story_info.get_act(act_name=act)]
 
 
 @app.route('/test_query', methods=['GET', 'POST'])
@@ -108,18 +108,18 @@ def generate():
         if '\n' not in agent_reply:
             raise f"ERROR! Please check {agent_reply}"
         reply_splited = split_to_parts(agent_reply)
-
+        assert len(reply_splited) == 4
         for index, reply in enumerate(reply_splited):
-            text_to_speech(reply, f"sound-{index}")
-            # TODO 生成四幅
-            generate_draw(drawing_type=askterm, drawing_content=reply)
-
+            output["sounds"].append(text_to_speech(reply, f"sound-{index}"))
+            output["images"].append(
+                generate_draw(drawing_type=askterm,
+                              drawing_content=reply,
+                              index=index))
     else:
-        type = ""
-        content = ""
-
-        generate_draw(type, content)
-    return
+        for index in range(4):
+            output["sounds"].append(text_to_speech(content, f"sound-{index}"))
+            output["images"].append(generate_draw(drawing_type=askterm, drawing_content=content, index=index))
+    return jsonify(output)
 
 
 @app.route('/generate_story', methods=['GET', 'POST'])
@@ -164,7 +164,7 @@ def generate_story():
     return agent_reply
 
 
-def generate_draw(drawing_type, drawing_content):
+def generate_draw(drawing_type, drawing_content, index):
     temp_memory = []
     if drawing_type == "role":
         temp_memory.append({
@@ -191,8 +191,9 @@ def generate_draw(drawing_type, drawing_content):
                                          messages=temp_memory,
                                          temperature=0)
     print("agent: ", agent_reply)
-    generate_draw_with_dalle(agent_reply, drawing_type)
-    return agent_reply
+    image_data = generate_draw_with_dalle(agent_reply,
+                                          name=f'{drawing_type}-{index}')
+    return image_data
 
 
 @app.route('/split_story', methods=['GET', 'POST'])

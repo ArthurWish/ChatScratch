@@ -139,8 +139,11 @@ def text_to_speech(text, file_name):
             return
         i = i + 1
         wavfile.writeframes(chunk)
-
     wavfile.close()
+    
+    with open(f'static/{file_name}.mp3', 'rb') as f:
+        audio_base64 = base64.b64encode(f.read()).decode('utf-8')
+    return audio_base64
 
 
 # text_to_speech("我是一个小猪")
