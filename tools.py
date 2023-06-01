@@ -147,11 +147,12 @@ def generate_draw_with_dalle(prompt, name):
                                    response_format="b64_json")
     for index, image_dict in enumerate(response["data"]):
         image_data = b64decode(image_dict["b64_json"]) # return
+        image_data_return = image_dict["b64_json"]
         # image_data_list.append(image_data)
         image_file = f"static/{name}.png"
         with open(image_file, mode="wb") as png:
             png.write(image_data)
-    return image_data.decode('utf-8')
+    return image_data_return
 
 def get_auth_from_stability():
     url = f"https://api.stability.ai/v1/user/account"

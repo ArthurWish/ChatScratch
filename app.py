@@ -116,6 +116,7 @@ def generate():
                               drawing_content=reply,
                               index=index))
     else:
+        content = content[0]
         for index in range(4):
             output["sounds"].append(text_to_speech(content, f"sound-{index}"))
             output["images"].append(generate_draw(drawing_type=askterm, drawing_content=content, index=index))
