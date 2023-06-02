@@ -199,28 +199,33 @@ def generate_draw(drawing_type, drawing_content, index):
 
 @app.route('/split_story', methods=['GET', 'POST'])
 def split_story():
+    # 儿童提问，首先进行任务分解
     # data format: json
-    data = request.json
-    part = data['part']  # 获取part字段的值
-    role = data['role']  # 获取role字段的值
-    background = data['background']  # 获取background字段的值
-    event = data['event']  # 获取event字段的值
+    id = request.form.get("id")
     try:
-        audio = request.files['audio']  # 获取上传的音频文件对象
+        blob = request.files['audio']  # 获取上传的音频文件对象
+        blob.save(f'static/code-question-{id}.webm')
+        audio_file = open(f'static/code-question-{id}.webm', 'rb')
+        transcript = openai.Audio.transcribe("whisper-1", audio_file)
+        content = transcript["text"]
+        audio_file.close()
     except:
-        print("not audio found!")
+        print("not audio found!") 
+    # only for test
+    content = request.form.get("content")
     temp_memory = []
     temp_memory.append({
         "role":
         "user",
         "content":
-        f"""你是一个专业的Scratch编程老师。我有一个故事梗概：第{part}幕，角色：{role}，场景：{background}，事件：{event}。我要根据这个故事来创建Scratch3.0项目，目前我有一些基础事件的Scratch实现：发出声音、键盘控制移动、点击角色发光、发出广播切换场景等，在{event}中，生成3个最有价值的Scratch代码，你的目标是参考事件来使Scratch代码丰富且富有创意。
+        f"""你是一个专业的Scratch编程老师。目前数据库里有一些基础事件的Scratch实现：发出声音、键盘控制移动、点击角色发光、发出广播切换场景等，根据问题<{content}>，分点列举3个最有价值的Scratch代码实现，你的目标是模仿数据库的事件来使实现的Scratch代码有逻辑且正确。
         """
     })
     agent_reply = create_chat_completion(model=MODEL,
                                          messages=temp_memory,
                                          temperature=0)
     print("agent: ", agent_reply)
+    reply_splited = split_to_parts(agent_reply)
     return agent_reply
 
 
