@@ -49,7 +49,7 @@ def test_query():
 def get_audio():
     blob = request.files['file']
     act = request.form.get('act')
-    assert act == "act1" or act == "act2" or act == "act3"
+    assert act == "1" or act == "2" or act == "3"
     type = request.form.get('type')
     assert type == "role" or type == "background" or type == "event"
     blob.save(f'static/{act}+{type}.webm')
@@ -94,7 +94,7 @@ def generate():
     assert id == "1" or id == "2" or id == "3"
     askterm = request.form.get('askterm')
     assert askterm == "role" or askterm == "background" or askterm == "event"
-    output = {'sounds': [], 'images': []}
+    output = {'sound': [], 'image': []}
     temp_memory = []
     # query
     content = story_info.get_act(act_name=id, key=askterm)
@@ -110,16 +110,16 @@ def generate():
         reply_splited = split_to_parts(agent_reply)
         assert len(reply_splited) == 4
         for index, reply in enumerate(reply_splited):
-            output["sounds"].append(text_to_speech(reply, f"sound-{index}"))
-            output["images"].append(
+            output["sound"].append(text_to_speech(reply, f"sound-{index}"))
+            output["image"].append(
                 generate_draw(drawing_type=askterm,
                               drawing_content=reply,
                               index=index))
     else:
         content = content[0]
         for index in range(4):
-            output["sounds"].append(text_to_speech(content, f"sound-{index}"))
-            output["images"].append(generate_draw(drawing_type=askterm, drawing_content=content, index=index))
+            output["sound"].append(text_to_speech(content, f"sound-{index}"))
+            output["image"].append(generate_draw(drawing_type=askterm, drawing_content=content, index=index))
     return jsonify(output)
 
 
@@ -236,29 +236,33 @@ def send_audio():
 
 @app.route('/generate_code', methods=['GET', 'POST'])
 def generate_code():
-    data = request.json
-    prompt = data['prompt']
-    temp_memory = []
-    temp_memory.append({
-        "role":
-        "user",
-        "content":
-        f"""你是一个专业的Scratch编程老师。你的任务是以一致的风格回答问题：{PROMPT}
-    答案请使用Scratch3.0中的代码块，请补充completion["prompt":{prompt} ->,"completion":]"""
-    })
-    # print(temp_memory)
-    agent_reply = create_chat_completion(model=MODEL,
-                                         messages=temp_memory,
-                                         temperature=0)
-    print("agent: ", agent_reply)
-    with open("static/agent_reply.txt", "w", encoding='utf-8') as f:
-        f.write(agent_reply)
-    extracted_reply = extract_keywords(agent_reply)
-    block_list = cal_similarity(extracted_reply, ass_block)
-    # print(block_list)
-    with open("static/block_suggestion.txt", 'w') as f:
-        list_str = '\n'.join(str(element) for element in block_list)
-        f.write(list_str)
+    with open('static/answear1.mp3','rb') as f:
+        audio =  base64.b64encode(f.read()).decode('utf-8')
+    print('send')    
+    return jsonify({'file':audio})
+    # data = request.json
+    # prompt = data['prompt']
+    # temp_memory = []
+    # temp_memory.append({
+    #     "role":
+    #     "user",
+    #     "content":
+    #     f"""你是一个专业的Scratch编程老师。你的任务是以一致的风格回答问题：{PROMPT}
+    # 答案请使用Scratch3.0中的代码块，请补充completion["prompt":{prompt} ->,"completion":]"""
+    # })
+    # # print(temp_memory)
+    # agent_reply = create_chat_completion(model=MODEL,
+    #                                      messages=temp_memory,
+    #                                      temperature=0)
+    # print("agent: ", agent_reply)
+    # with open("static/agent_reply.txt", "w", encoding='utf-8') as f:
+    #     f.write(agent_reply)
+    # extracted_reply = extract_keywords(agent_reply)
+    # block_list = cal_similarity(extracted_reply, ass_block)
+    # # print(block_list)
+    # with open("static/block_suggestion.txt", 'w') as f:
+    #     list_str = '\n'.join(str(element) for element in block_list)
+    #     f.write(list_str)
     return block_list
 
 
