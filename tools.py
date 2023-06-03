@@ -1,4 +1,5 @@
 import configparser
+import io
 import Levenshtein as lv
 import requests
 from block_types import *
@@ -7,6 +8,7 @@ from typing import List
 from chat import create_chat_completion
 import openai
 from base64 import b64decode
+from PIL import Image
 
 PROMPT = """
 {"prompt":"点击角色，使角色变色 ->","completion":" \"when this sprite clicked\",\"change [color] effect by [25]\"\n"}
@@ -139,73 +141,116 @@ def question_and_relpy(question):
     # messages.append({"role": "assistant", "content": agent_reply})
     return agent_reply
 
-def generate_draw_with_dalle(prompt, name):
+
+def generate_draw_with_dalle(prompt, save_path):
     # image_data_list = []
     response = openai.Image.create(prompt=prompt,
                                    n=1,
                                    size="256x256",
                                    response_format="b64_json")
     for index, image_dict in enumerate(response["data"]):
-        image_data = b64decode(image_dict["b64_json"]) # return
         image_data_return = image_dict["b64_json"]
         # image_data_list.append(image_data)
-        image_file = f"static/{name}.png"
-        with open(image_file, mode="wb") as png:
-            png.write(image_data)
+        with open(f"{save_path}.png", mode="wb") as png:
+            png.write(b64decode(image_dict["b64_json"]))
     return image_data_return
+
 
 def get_auth_from_stability():
     url = f"https://api.stability.ai/v1/user/account"
     conf = configparser.ConfigParser()
     conf.read("./envs/keys.ini")
     api_key = conf.get("stability", "api")
-    response = requests.get(url, headers={
-    "Authorization": f"Bearer {api_key}"
-})
+    response = requests.get(url,
+                            headers={"Authorization": f"Bearer {api_key}"})
     if response.status_code != 200:
         raise Exception("Non-200 response: " + str(response.text))
     payload = response.json()
 
 
-def generate_draw_with_stable(prompt, name):
+def generate_draw_with_stable(prompt, save_path):
     engine_id = "stable-diffusion-v1-5"
     api_host = 'https://api.stability.ai'
     conf = configparser.ConfigParser()
     conf.read("./envs/keys.ini")
     api_key = conf.get("stability", "api")
-
     if api_key is None:
         raise Exception("Missing Stability API key.")
-    
+
     response = requests.post(
-    f"{api_host}/v1/generation/{engine_id}/text-to-image",
-    headers={
-        "Content-Type": "application/json",
-        "Accept": "application/json",
-        "Authorization": f"Bearer {api_key}"
-    },
-    json={
-        "text_prompts": [
-            {
-                "text": f"{prompt}"
-            }
-        ],
-        "cfg_scale": 7,
-        "clip_guidance_preset": "FAST_BLUE",
-        "height": 512,
-        "width": 512,
-        "samples": 1,
-        "steps": 30,
-    },
-)
+        f"{api_host}/v1/generation/{engine_id}/text-to-image",
+        headers={
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+            "Authorization": f"Bearer {api_key}"
+        },
+        json={
+            "text_prompts": [{
+                "text": prompt
+            }],
+            "cfg_scale": 7,
+            "clip_guidance_preset": "FAST_BLUE",
+            "height": 512,
+            "width": 512,
+            "samples": 1,
+            "steps": 30,
+        },
+    )
     if response.status_code != 200:
         raise Exception("Non-200 response: " + str(response.text))
 
     data = response.json()
 
     for i, image in enumerate(data["artifacts"]):
-        with open(f"./static/{name}.png", "wb") as f:
+        image_data = image["base64"]
+        with open(f"{save_path}.png", "wb") as f:
             f.write(b64decode(image["base64"]))
+    return image_data
+
+
+def generate_image_to_image(prompt, base_image):
+    image = Image.open(base_image)
+    resized_image = image.resize((512, 512))
+    with io.BytesIO() as buffer:
+        resized_image.save(buffer, format='JPEG')
+        binary_data = buffer.getvalue()
+    engine_id = "stable-diffusion-v1-5"
+    api_host = 'https://api.stability.ai'
+    conf = configparser.ConfigParser()
+    conf.read("./envs/keys.ini")
+    api_key = conf.get("stability", "api")
+    if api_key is None:
+        raise Exception("Missing Stability API key.")
+
+    response = requests.post(
+        f"{api_host}/v1/generation/{engine_id}/image-to-image",
+        headers={
+            "Accept": "application/json",
+            "Authorization": f"Bearer {api_key}"
+        },
+        files={"init_image": binary_data},
+        data={
+            "image_strength": 0.35,
+            "init_image_mode": "IMAGE_STRENGTH",
+            "text_prompts[0][text]": prompt,
+            "cfg_scale": 7,
+            "clip_guidance_preset": "FAST_BLUE",
+            "samples": 1,
+            "steps": 30,
+        })
+
+    if response.status_code != 200:
+        raise Exception("Non-200 response: " + str(response.text))
+
+    data = response.json()
+
+    for i, image in enumerate(data["artifacts"]):
+        image_data = image["base64"]
+        # only for test
+        # with open("test.png", "wb") as f:
+        #     f.write(b64decode(image["base64"]))
+    return image_data
+
 
 def split_to_parts(reply: str):
     lines = reply.split('\n')
@@ -228,6 +273,7 @@ def split_to_parts(reply: str):
     # # print(result)
     # return result
 
+
 def test():
     string = '1. 小明：一个勇敢的男孩，喜欢探险和冒险。他在森林里迷路了，正在寻找回家的路。\n2. 小芳：一个聪明的女孩，喜欢读书和学习。她在图书馆里发现了一本神秘的书，决定破解其中的谜题。\n3. 小华：一个善良的男孩，喜欢帮助别人。他在街上看到一个老奶奶摔倒了，决定去帮助她。\n4. 小玲：一个有想象力的女孩，喜欢画画和创作。她在花园里发现了一只神奇的小鸟，决定和它成为朋友。'
     c = split_to_parts(string)
@@ -235,10 +281,15 @@ def test():
     # print(c[0][0])
     # print(c[0][1])
 
+
 if __name__ == "__main__":
+    generate_image_to_image("a blue star with magical sky",
+                            base_image=r"C:\Users\YunNong\Desktop\star.png")
     # generate_draw_with_dalle("Forest with running track at the end, featuring trees and a running track. Line art, anime, colored, child style.", "2-b")
-    # generate_draw_with_stable("A red tiger facing left with a transparent background, anime style, and colored.", "1")
-    test()
+    # generate_draw_with_stable(
+    #     "Anime-style human, in line art with a transparent background, exploring a magical world with a butterfly companion.",
+    #     "1")
+    # test()
     exit(0)
     agent_reply = '"when green flag clicked","say [你追我啊] for [2] seconds","repeat until <touching [rabbit]>","move [10] steps","end","play sound [Boing] until done"'
     extracted_reply = extract_keywords(agent_reply)

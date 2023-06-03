@@ -96,7 +96,7 @@ class Request:
         # print(self)
 
 
-def text_to_speech(text, file_name):
+def text_to_speech(text, save_path):
     req = Request()
     req.init(text)
     auth = Authorization()
@@ -131,7 +131,7 @@ def text_to_speech(text, file_name):
         return
     '''
     i = 1
-    wavfile = wave.open(f'static/{file_name}.mp3', 'wb')
+    wavfile = wave.open(save_path, 'wb')
     wavfile.setparams((1, 2, 16000, 0, 'NONE', 'NONE'))
     for chunk in r.iter_content(1000):
         if (i == 1) & (str(chunk).find("Error") != -1):
@@ -141,7 +141,7 @@ def text_to_speech(text, file_name):
         wavfile.writeframes(chunk)
     wavfile.close()
     
-    with open(f'static/{file_name}.mp3', 'rb') as f:
+    with open(save_path, 'rb') as f:
         audio_base64 = base64.b64encode(f.read()).decode('utf-8')
     return audio_base64
 
