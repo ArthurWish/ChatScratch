@@ -163,21 +163,24 @@ def generate_task():
 
 @app.route('/generate_img_to_img', methods=['GET', 'POST'])
 def generate_img_to_img():
+    print('111')
     id = request.form.get("id")
     assests_path = f"static/{id}"
     assert id == "1" or id == "2" or id == "3"
     askterm = request.form.get('askterm')
     assert askterm == "role" or askterm == "background" or askterm == "event"
     os.makedirs(assests_path, exist_ok=True)
-    base_img = request.form.get("image") # base64
+    base_img = request.form.get("url").split(',')[1] # base64
+    print(base_img)
     with open("static/temp.png", "wb") as f:
         f.write(b64decode(base_img))
     content = story_info.get_act(act_name=id, key=askterm)
+    content = ['rabbit with red carrot']
     if content != []:
         image_base64 = generate_image_to_image(prompt=content, base_image="static/temp.png")
-        return image_base64
+        return jsonify({'status':'success', 'url': image_base64})
     else:
-        return None
+        return jsonify({'status':'failed', 'url': None})
 
 
 @app.route('/generate_code', methods=['GET', 'POST'])
@@ -212,4 +215,4 @@ def generate_code():
 
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000)
+    app.run(host='0.0.0.0', port=5000, debug=True)

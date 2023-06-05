@@ -212,7 +212,7 @@ def generate_image_to_image(prompt, base_image):
     image = Image.open(base_image)
     resized_image = image.resize((512, 512))
     with io.BytesIO() as buffer:
-        resized_image.save(buffer, format='JPEG')
+        resized_image.save(buffer, format='PNG')
         binary_data = buffer.getvalue()
     engine_id = "stable-diffusion-v1-5"
     api_host = 'https://api.stability.ai'
@@ -247,8 +247,8 @@ def generate_image_to_image(prompt, base_image):
     for i, image in enumerate(data["artifacts"]):
         image_data = image["base64"]
         # only for test
-        # with open("test.png", "wb") as f:
-        #     f.write(b64decode(image["base64"]))
+        with open("test.png", "wb") as f:
+            f.write(b64decode(image["base64"]))
     return image_data
 
 
