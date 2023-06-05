@@ -129,11 +129,11 @@ def generate_draw(drawing_type, drawing_content, save_path):
     return image_data
 
 
-@app.route('/split_story', methods=['GET', 'POST'])
-def split_story():
-    # 儿童提问，首先进行任务分解
+@app.route('/generate_task', methods=['GET', 'POST'])
+def generate_task():
+    # 儿童提问，首先生成编程任务
     # data format: json
-    id = request.form.get("id")
+    question = request.form.get("quesiton")
     try:
         blob = request.files['audio']  # 获取上传的音频文件对象
         blob.save(f'static/code-question-{id}.webm')
@@ -182,6 +182,9 @@ def generate_img_to_img():
 
 @app.route('/generate_code', methods=['GET', 'POST'])
 def generate_code():
+    """
+    return code_list
+    """
     id = request.form.get("id")
     prompt = request.form.get("prompt")
     temp_memory = []
@@ -198,14 +201,14 @@ def generate_code():
     print("agent: ", agent_reply)
     with open(f"static/agent_reply-{id}.txt", "w", encoding='utf-8') as f:
         f.write(agent_reply)
-    audio_base64 = text_to_speech(agent_reply, f"static/agent-reply-{id}.mp3")
+    # audio_base64 = text_to_speech(agent_reply, f"static/agent-reply-{id}.mp3")
     extracted_reply = extract_keywords(agent_reply)
     block_list = cal_similarity(extracted_reply, ass_block)
     # print(block_list)
     with open(f"static/block_suggestion-{id}.txt", 'w') as f:
         list_str = '\n'.join(str(element) for element in block_list)
         f.write(list_str)
-    return jsonify({'code': block_list, "audio": audio_base64})
+    return jsonify({'code': block_list})
 
 
 if __name__ == '__main__':
