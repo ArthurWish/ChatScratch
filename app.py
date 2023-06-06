@@ -8,6 +8,9 @@ from flask_cors import CORS
 from tools import *
 from pydub import AudioSegment
 from story_dict import StoryInfo
+import hashlib
+from PIL import Image
+import shutil
 
 app = Flask(__name__)
 CORS(app)
@@ -181,7 +184,232 @@ def generate_img_to_img():
         return jsonify({'status':'success', 'url': image_base64})
     else:
         return jsonify({'status':'failed', 'url': None})
+    
+@app.route('/save_drawings', methods=['GET', 'POST'])
+def save_drawings():
+    role_list = json.loads(request.form['role'])
+    project_path = 'C:/Users/11488/Desktop/react_try/scratch-gui/src/lib/default-project/'
+    assests_path = f"static/role/"
+    if os.path.exists(assests_path):
+        shutil.rmtree(assests_path)
+    os.makedirs(assests_path, exist_ok=True)
+    if os.path.exists(project_path):
+        shutil.rmtree(project_path)
+    os.makedirs(project_path, exist_ok=True)
+    for i, img in enumerate(role_list):
+        img = img.split(',')[1]
+        png_path = os.path.join(assests_path, f'{i}.png')
+        with open(png_path, "wb") as f:
+            f.write(b64decode(img))
+        svg_str = toSVG(png_path)
+        svg_path = os.path.join(assests_path, f'{get_str_md5(svg_str)}.svg')
+        pro_path = os.path.join(project_path, f'{get_str_md5(svg_str)}.svg')
+        with open(svg_path, "w") as f:
+            f.write(svg_str)
+        with open(pro_path, "w") as f:
+            f.write(svg_str)
+        os.remove(png_path)  # 删除原始PNG图片
 
+    # 处理scene_list
+    scene_list = json.loads(request.form['scene'])
+    assests_path =  f"static/scene/"
+    if os.path.exists(assests_path):
+        shutil.rmtree(assests_path)
+    os.makedirs(assests_path, exist_ok=True)
+    for i, img in enumerate(scene_list):
+        img = img.split(',')[1]
+        png_path = os.path.join(assests_path, f'{i}.png')
+        with open(png_path, "wb") as f:
+            f.write(b64decode(img))
+        svg_str = toSVG(png_path)
+        svg_path = os.path.join(assests_path, f'{get_str_md5(svg_str)}.svg')
+        pro_path = os.path.join(project_path, f'{get_str_md5(svg_str)}.svg')
+        with open(svg_path, "w") as f:
+            f.write(svg_str)
+        with open(pro_path, "w") as f:
+            f.write(svg_str)
+        os.remove(png_path)  # 删除原始PNG图片
+
+    
+    
+        
+    generate_js()
+    generate_js_project()
+    return jsonify({'status':'success'})
+
+def toSVG(infile):
+    image = Image.open(infile).convert('RGBA')
+    data = image.load()
+    width, height = image.size
+    svg_str = '<?xml version="1.0" encoding="UTF-8" standalone="no"?>\n'
+    svg_str += '<svg id="svg2" xmlns="http://www.w3.org/2000/svg" version="1.1" \
+                width="%(x)i" height="%(y)i" viewBox="0 0 %(x)i %(y)i">\n' % \
+              {'x': width, 'y': height}
+    for y in range(height):
+        for x in range(width):
+            rgba = data[x, y]
+            rgb = '#%02x%02x%02x' % rgba[:3]
+            if rgba[3] > 0:
+                svg_str += '<rect width="1" height="1" x="%i" y="%i" fill="%s" \
+                    fill-opacity="%.2f" />\n' % (x, y, rgb, rgba[3]/255.0)
+    svg_str += '</svg>\n'
+    return svg_str
+
+# 计算字符串的MD5哈希值的函数
+def get_str_md5(input_str):
+    md5_obj = hashlib.md5()
+    md5_obj.update(input_str.encode())
+    return md5_obj.hexdigest()
+
+
+def generate_js():
+    backdrop_files = os.listdir('static/scene')
+    costume_files = os.listdir('static/role')
+   
+    with open('C:/Users/11488/Desktop/react_try/scratch-gui/src/lib/default-project/index.js', 'w') as f:
+        f.write('import projectData from \'./project-data\';\n')
+        for i, file in enumerate(backdrop_files):
+            f.write('import backdrop' + str(i + 1) + ' from \'!raw-loader!./' + file + '\';\n')
+        for i, file in enumerate(costume_files):
+            f.write('import costume' + str(i + 1) + ' from \'!raw-loader!./' + file + '\';\n')
+
+        f.write('\nconst defaultProject = translator => {\n')
+        f.write('let _TextEncoder;\n')
+        f.write('if (typeof TextEncoder === \'undefined\') {\n')
+        f.write('    _TextEncoder = require(\'text-encoding\').TextEncoder;\n')
+        f.write('} else {\n')
+        f.write('    _TextEncoder = TextEncoder;\n')
+        f.write('}\n')
+        f.write('const encoder = new _TextEncoder();\n\n')
+        f.write('const projectJson = projectData(translator);\n\n')
+        f.write('    return [{\n')
+        f.write('        id: 0,\n')
+        f.write('        assetType: \'Project\',\n')
+        f.write('        dataFormat: \'JSON\',\n')
+        f.write('        data: JSON.stringify(projectJson)\n')
+        f.write('    },\n')
+
+        for i, file in enumerate(backdrop_files):
+            f.write('    {\n')
+            f.write('        id: \'' + file.split('.')[0] + '\',\n')
+            f.write('        assetType: \'ImageVector\',\n')
+            f.write('        dataFormat: \'SVG\',\n')
+            f.write('        data: encoder.encode(backdrop' + str(i + 1) + ')\n')
+            f.write('    },\n')
+        
+        for i, file in enumerate(costume_files):
+            f.write('    {\n')
+            f.write('        id: \'' + file.split('.')[0] + '\',\n')
+            f.write('        assetType: \'ImageVector\',\n')
+            f.write('        dataFormat: \'SVG\',\n')
+            f.write('        data: encoder.encode(costume' + str(i + 1) + ')\n')
+            f.write('    },\n')
+
+        f.write('];\n};\n\nexport default defaultProject;\n')
+        
+        
+def generate_js_project():
+    backdrop_files = os.listdir('static/scene')
+    costume_files = os.listdir('static/role')
+
+    with open('C:/Users/11488/Desktop/react_try/scratch-gui/src/lib/default-project/project-data.js', 'w') as f:
+        f.write('import {defineMessages} from \'react-intl\';\n')
+        f.write('import sharedMessages from \'../shared-messages\';\n\n')
+        f.write('let messages = defineMessages({\n')
+        f.write('    meow: {\n')
+        f.write('        defaultMessage: \'Meow\',\n')
+        f.write('        description: \'Name for the meow sound\',\n')
+        f.write('        id: \'gui.defaultProject.meow\'\n')
+        f.write('    },\n')
+        f.write('    variable: {\n')
+        f.write('        defaultMessage: \'my variable\',\n')
+        f.write('        description: \'Name for the default variable\',\n')
+        f.write('        id: \'gui.defaultProject.variable\'\n')
+        f.write('    }\n')
+        f.write('});\n\n')
+        f.write('messages = {...messages, ...sharedMessages};\n\n')
+        f.write('const defaultTranslator = msgObj => msgObj.defaultMessage;\n\n')
+        
+        f.write('/**\n')
+        f.write(' * Generates the project data.\n')
+        f.write(' * @param {function} translateFunction - A function to translate the text in the project.\n')
+        f.write(' * @return {object} The project data with multiple targets each with its own properties.\n')
+        f.write(' */\n')
+        
+        f.write('const projectData = translateFunction => {\n')
+        f.write('    const translator = translateFunction || defaultTranslator;\n')
+        f.write('    return ({\n')
+        f.write('        targets: [\n')
+
+        # for i, file in enumerate(backdrop_files):
+        f.write('            {\n')
+        f.write('                isStage: true,\n')
+        f.write('                name: \'Stage\',\n')
+        f.write('                variables: {\n')
+        f.write('                    \'`jEk@4|i[#Fk?(8x)AV.-my variable\': [\n')
+        f.write('                        translator(messages.variable),\n')
+        f.write('                        0\n')
+        f.write('                    ]\n')
+        f.write('                },\n')
+        f.write('                lists: {},\n')
+        f.write('                broadcasts: {},\n')
+        f.write('                blocks: {},\n')
+        f.write('                currentCostume: 0,\n')
+        f.write('                costumes: [\n')
+        for i, file in enumerate(backdrop_files):
+            f.write('                    {\n')
+            f.write('                        assetId: \'' + file.split('.')[0] + '\',\n')
+            f.write('                        name: translator(messages.backdrop, {index: ' + str(i+1) + '}),\n')
+            f.write('                        md5ext: \'' + file + '\',\n')
+            f.write('                        dataFormat: \'svg\',\n')
+            f.write('                        rotationCenterX: 500,\n')
+            f.write('                        rotationCenterY: 460\n')
+            f.write('                    },\n')
+        f.write('                ],\n')
+        f.write('                sounds: [],\n')
+        f.write('                volume: 100\n')
+        f.write('            },\n')
+        for i, file in enumerate(costume_files):
+            f.write('            {\n')
+            f.write('                isStage: false,\n')
+            f.write('                name: translator(messages.sprite, {index: ' + str(i + 1) + '}),\n')
+            f.write('                variables: {},\n')
+            f.write('                lists: {},\n')
+            f.write('                broadcasts: {},\n')
+            f.write('                blocks: {},\n')
+            f.write('                currentCostume: 0,\n')
+            f.write('                costumes: [\n')
+        
+            f.write('                    {\n')
+            f.write('                        assetId: \'' + file.split('.')[0] + '\',\n')
+            f.write('                        name: translator(messages.costume, {index: ' + str(1) + '}),\n')
+            f.write('                        bitmapResolution: 1,\n')
+            f.write('                        md5ext: \'' + file + '\',\n')
+            f.write('                        dataFormat: \'svg\',\n')
+            f.write('                        rotationCenterX: 500,\n')
+            f.write('                        rotationCenterY: 460\n')
+            f.write('                    },\n')
+            f.write('                ],\n')
+            f.write('                sounds: [],\n')
+            f.write('                volume: 100,\n')
+            f.write('                visible: true,\n')
+            f.write('                x: 0,\n')
+            f.write('                y: 0,\n')
+            f.write('                size: 100,\n')
+            f.write('                direction: 90,\n')
+            f.write('                draggable: false,\n')
+            f.write('                rotationStyle: \'all around\'\n')
+            f.write('            },\n')
+
+        f.write('        ],\n')
+        f.write('        meta: {\n')
+        f.write('            semver: \'3.0.0\',\n')
+        f.write('            vm: \'0.1.0\',\n')
+        f.write('            agent: \'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/65.0.3325.181 Safari/537.36\'\n')
+        f.write('        }\n')
+        f.write('    });\n')
+        f.write('};\n\n')
+        f.write('export default projectData;\n')
 
 @app.route('/generate_code', methods=['GET', 'POST'])
 def generate_code():
