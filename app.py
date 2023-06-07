@@ -201,14 +201,14 @@ def generate_code():
     print("agent: ", agent_reply)
     with open(f"static/agent_reply-{id}.txt", "w", encoding='utf-8') as f:
         f.write(agent_reply)
-    # audio_base64 = text_to_speech(agent_reply, f"static/agent-reply-{id}.mp3")
+    audio_base64 = text_to_speech(agent_reply, f"static/agent-reply-{id}.mp3")
     extracted_reply = extract_keywords(agent_reply)
     block_list = cal_similarity(extracted_reply, ass_block)
     # print(block_list)
     with open(f"static/block_suggestion-{id}.txt", 'w') as f:
         list_str = '\n'.join(str(element) for element in block_list)
         f.write(list_str)
-    return jsonify({'code': block_list})
+    return jsonify({'code': block_list, 'audio': audio_base64})
 
 
 if __name__ == '__main__':
