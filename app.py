@@ -215,12 +215,15 @@ def generate_code():
     """
     return code_list
     """
+    os.makedirs('static/codes', exist_ok=True)
     id = request.form.get("id")
     audio_blob = request.files['file']
     audio_blob.save(f'static/codes/code-question-{id}.webm')
     audio_file = open(f'static/codes/code-question-{id}.webm', 'rb')
     transript = openai.Audio.transcribe("whisper-1", audio_file)
     content = transript["text"]
+    #test
+    # content = '如何实现角色翻转'
     temp_memory = []
     temp_memory.append({
         "role":
@@ -238,11 +241,21 @@ def generate_code():
     audio_base64 = text_to_speech(agent_reply, f"static/codes/agent-reply-{id}.mp3")
     extracted_reply = extract_keywords(agent_reply)
     block_list = cal_similarity(extracted_reply, ass_block)
+    block_list = [block for block in block_list if block]
+    print(block_list)
+    output_json = 'static/codes/block_suggestion.json'
+    data={}
+    if os.path.exists(output_json):
+        with open(output_json, 'r') as f:
+            data = json.load(f)
+    data[str(int(id)-1)] = block_list
+    with open(output_json, 'w') as f:
+        json.dump(data, f, indent=4) 
     # print(block_list)
-    with open(f"static/codes/block_suggestion-{id}.txt", 'w') as f:
-        list_str = '\n'.join(str(element) for element in block_list)
-        f.write(list_str)
-    return jsonify({'code': block_list, 'audio': audio_base64})
+    # with open(f"static/codes/block_suggestion-{id}.txt", 'w') as f:
+    #     list_str = '\n'.join(str(element) for element in block_list)
+    #     f.write(list_str)
+    return jsonify({'file': audio_base64})
 
 
 if __name__ == '__main__':
