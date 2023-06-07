@@ -157,7 +157,7 @@ def generate_img_to_img():
     combined.convert('RGB').save('static/temp.png', 'PNG')
     
     content = story_info.get_act(act_name=id, key=askterm)
-    content = ['a cartoon cat with smile with transparent background']
+    content = ['a forest with transparent background']
     if content != []:
         image_base64 = generate_image_to_image(
             prompt=content, base_image="static/temp.png")
@@ -199,7 +199,6 @@ def save_drawings():
             f.write(b64decode(img))
         toSVG(png_path,project_path,assests_path)
         os.remove(png_path)  # 删除原始PNG图片
-
     generate_js()
     generate_js_project()
     return jsonify({'status': 'success'})

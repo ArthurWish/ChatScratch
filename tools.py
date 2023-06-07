@@ -12,6 +12,8 @@ from PIL import Image
 import os
 import hashlib
 from wand.image import Image as wImage
+import xml.etree.ElementTree as ET
+
 
 PROMPT = """
 {"prompt":"点击角色，使角色变色 ->","completion":" \"when this sprite clicked\",\"change [color] effect by [25]\"\n"}
@@ -315,6 +317,18 @@ def toSVG(infile,outpath,temppath):
         img.save(filename=outfile)
         img.save(filename=tempfile)
         
+
+
+def Get_size(infile):
+    tree = ET.parse(infile)
+    root = tree.getroot()
+    element_with_width = root.find(".//*[@width]")
+    if element_with_width is not None:
+        width = int(element_with_width.get('width'))
+        height = int(element_with_width.get('height'))
+        return width//2,height//2
+    else:
+        return 280,280
     
 
 def generate_js():
@@ -412,19 +426,21 @@ def generate_js_project():
         f.write('                currentCostume: 0,\n')
         f.write('                costumes: [\n')
         for i, file in enumerate(backdrop_files):
+            center_x, center_y = Get_size(os.path.join('static/scene',file))
             f.write('                    {\n')
             f.write('                        assetId: \'' + file.split('.')[0] + '\',\n')
             f.write('                        name: translator(messages.backdrop, {index: ' + str(i+1) + '}),\n')
             f.write('                        md5ext: \'' + file + '\',\n')
             f.write('                        dataFormat: \'svg\',\n')
-            f.write('                        rotationCenterX: 500,\n')
-            f.write('                        rotationCenterY: 460\n')
+            f.write(f'                        rotationCenterX: {center_x},\n')
+            f.write(f'                        rotationCenterY: {center_y}\n')
             f.write('                    },\n')
         f.write('                ],\n')
         f.write('                sounds: [],\n')
         f.write('                volume: 100\n')
         f.write('            },\n')
         for i, file in enumerate(costume_files):
+            center_x, center_y = Get_size(os.path.join('static/role',file))
             f.write('            {\n')
             f.write('                isStage: false,\n')
             f.write('                name: translator(messages.sprite, {index: ' + str(i + 1) + '}),\n')
@@ -441,8 +457,8 @@ def generate_js_project():
             f.write('                        bitmapResolution: 1,\n')
             f.write('                        md5ext: \'' + file + '\',\n')
             f.write('                        dataFormat: \'svg\',\n')
-            f.write('                        rotationCenterX: 500,\n')
-            f.write('                        rotationCenterY: 460\n')
+            f.write(f'                        rotationCenterX: {center_x},\n')
+            f.write(f'                        rotationCenterY: {center_y}\n')
             f.write('                    },\n')
             f.write('                ],\n')
             f.write('                sounds: [],\n')
@@ -450,9 +466,9 @@ def generate_js_project():
             f.write('                visible: true,\n')
             f.write('                x: 0,\n')
             f.write('                y: 0,\n')
-            f.write('                size: 100,\n')
+            f.write('                size: 40,\n')
             f.write('                direction: 90,\n')
-            f.write('                draggable: false,\n')
+            f.write('                draggable: true,\n')
             f.write('                rotationStyle: \'all around\'\n')
             f.write('            },\n')
 
