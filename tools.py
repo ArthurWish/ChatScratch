@@ -11,6 +11,7 @@ from base64 import b64decode
 from PIL import Image
 import os
 import hashlib
+from wand.image import Image as wImage
 
 PROMPT = """
 {"prompt":"点击角色，使角色变色 ->","completion":" \"when this sprite clicked\",\"change [color] effect by [25]\"\n"}
@@ -304,30 +305,17 @@ def split_to_parts(reply: str):
     # # print(result)
     # return result
 
-def toSVG(infile):
-    image = Image.open(infile).convert('RGBA')
-    data = image.load()
-    width, height = image.size
-    svg_str = '<?xml version="1.0" encoding="UTF-8" standalone="no"?>\n'
-    svg_str += '<svg id="svg2" xmlns="http://www.w3.org/2000/svg" version="1.1" \
-                width="%(x)i" height="%(y)i" viewBox="0 0 %(x)i %(y)i">\n' % \
-              {'x': width, 'y': height}
-    for y in range(height):
-        for x in range(width):
-            rgba = data[x, y]
-            rgb = '#%02x%02x%02x' % rgba[:3]
-            if rgba[3] > 0:
-                svg_str += '<rect width="1" height="1" x="%i" y="%i" fill="%s" \
-                    fill-opacity="%.2f" />\n' % (x, y, rgb, rgba[3]/255.0)
-    svg_str += '</svg>\n'
-    return svg_str
-
-# 计算字符串的MD5哈希值的函数
-def get_str_md5(input_str):
-    md5_obj = hashlib.md5()
-    md5_obj.update(input_str.encode())
-    return md5_obj.hexdigest()
-
+def toSVG(infile,outpath,temppath):
+    with wImage(filename=infile) as img:
+        img.format = 'svg'
+        hash_object = hashlib.md5(img.make_blob())
+        hex_dig = hash_object.hexdigest()
+        outfile = os.path.join(outpath, f"{hex_dig}.svg")
+        tempfile = os.path.join(temppath, f"{hex_dig}.svg")
+        img.save(filename=outfile)
+        img.save(filename=tempfile)
+        
+    
 
 def generate_js():
     backdrop_files = os.listdir('static/scene')

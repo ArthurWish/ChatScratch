@@ -139,7 +139,6 @@ def generate_task():
 
 @app.route('/generate_img_to_img', methods=['GET', 'POST'])
 def generate_img_to_img():
-    print('111')
     id = request.form.get("id")
     assests_path = f"static/{id}"
     assert id == "1" or id == "2" or id == "3"
@@ -147,11 +146,18 @@ def generate_img_to_img():
     assert askterm == "role" or askterm == "background" or askterm == "event"
     os.makedirs(assests_path, exist_ok=True)
     base_img = request.form.get("url").split(',')[1]  # base64
-    print(base_img)
-    with open("static/temp.png", "wb") as f:
-        f.write(b64decode(base_img))
+    base_img_bytes = base64.b64decode(base_img)
+    img = Image.open(io.BytesIO(base_img_bytes)).convert('RGBA')
+
+# 创建一个新的白色背景图像，大小与原图像相同
+    bg = Image.new('RGBA', img.size, (255,255,255))
+
+    # 在背景上粘贴原图像（使用原图像作为遮罩以保留其透明度）
+    combined = Image.alpha_composite(bg, img)
+    combined.convert('RGB').save('static/temp.png', 'PNG')
+    
     content = story_info.get_act(act_name=id, key=askterm)
-    content = ['rabbit with red carrot']
+    content = ['a cartoon cat with smile with transparent background']
     if content != []:
         image_base64 = generate_image_to_image(
             prompt=content, base_image="static/temp.png")
@@ -175,14 +181,9 @@ def save_drawings():
         img = img.split(',')[1]
         png_path = os.path.join(assests_path, f'{i}.png')
         with open(png_path, "wb") as f:
-            f.write(b64decode(img))
-        svg_str = toSVG(png_path)
-        svg_path = os.path.join(assests_path, f'{get_str_md5(svg_str)}.svg')
-        pro_path = os.path.join(project_path, f'{get_str_md5(svg_str)}.svg')
-        with open(svg_path, "w") as f:
-            f.write(svg_str)
-        with open(pro_path, "w") as f:
-            f.write(svg_str)
+            f.write(b64decode(img))  
+        toSVG(png_path,project_path,assests_path)
+        
         os.remove(png_path)  # 删除原始PNG图片
 
     # 处理scene_list
@@ -196,13 +197,7 @@ def save_drawings():
         png_path = os.path.join(assests_path, f'{i}.png')
         with open(png_path, "wb") as f:
             f.write(b64decode(img))
-        svg_str = toSVG(png_path)
-        svg_path = os.path.join(assests_path, f'{get_str_md5(svg_str)}.svg')
-        pro_path = os.path.join(project_path, f'{get_str_md5(svg_str)}.svg')
-        with open(svg_path, "w") as f:
-            f.write(svg_str)
-        with open(pro_path, "w") as f:
-            f.write(svg_str)
+        toSVG(png_path,project_path,assests_path)
         os.remove(png_path)  # 删除原始PNG图片
 
     generate_js()
