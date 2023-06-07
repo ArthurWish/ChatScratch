@@ -14,6 +14,7 @@ import shutil
 app = Flask(__name__)
 CORS(app)
 os.makedirs("static", exist_ok=True)
+os.makedirs("static/codes", exist_ok=True)
 MODEL = "gpt-3.5-turbo"
 
 story_info = StoryInfo()
@@ -215,26 +216,30 @@ def generate_code():
     return code_list
     """
     id = request.form.get("id")
-    prompt = request.form.get("prompt")
+    audio_blob = request.files['file']
+    audio_blob.save(f'static/codes/code-question-{id}.webm')
+    audio_file = open(f'static/codes/code-question-{id}.webm', 'rb')
+    transript = openai.Audio.transcribe("whisper-1", audio_file)
+    content = transript["text"]
     temp_memory = []
     temp_memory.append({
         "role":
         "user",
         "content":
         f"""你是一个专业的Scratch编程老师。你的任务是以一致的风格回答问题：{PROMPT}
-    答案请使用Scratch3.0中的代码块，请补充completion["prompt":{prompt} ->,"completion":]"""
+    答案请使用Scratch3.0中的代码块，请补充completion["prompt":{content} ->,"completion":]"""
     })
     agent_reply = create_chat_completion(model=MODEL,
                                          messages=temp_memory,
                                          temperature=0)
     print("agent: ", agent_reply)
-    with open(f"static/agent_reply-{id}.txt", "w", encoding='utf-8') as f:
+    with open(f"static/codes/agent_reply-{id}.txt", "w", encoding='utf-8') as f:
         f.write(agent_reply)
-    audio_base64 = text_to_speech(agent_reply, f"static/agent-reply-{id}.mp3")
+    audio_base64 = text_to_speech(agent_reply, f"static/codes/agent-reply-{id}.mp3")
     extracted_reply = extract_keywords(agent_reply)
     block_list = cal_similarity(extracted_reply, ass_block)
     # print(block_list)
-    with open(f"static/block_suggestion-{id}.txt", 'w') as f:
+    with open(f"static/codes/block_suggestion-{id}.txt", 'w') as f:
         list_str = '\n'.join(str(element) for element in block_list)
         f.write(list_str)
     return jsonify({'code': block_list, 'audio': audio_base64})
