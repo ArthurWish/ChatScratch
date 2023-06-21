@@ -148,6 +148,7 @@ def question_and_relpy(question):
     # messages.append({"role": "assistant", "content": agent_reply})
     return agent_reply
 
+
 def generate_draw(drawing_type, drawing_content, save_path):
     temp_memory = []
     if drawing_type == "role":
@@ -175,6 +176,7 @@ def generate_draw(drawing_type, drawing_content, save_path):
     print("agent: ", agent_reply)
     image_data = generate_draw_with_dalle(agent_reply, save_path)
     return image_data
+
 
 def generate_draw_with_dalle(prompt, save_path):
     # image_data_list = []
@@ -243,6 +245,7 @@ def generate_draw_with_stable(prompt, save_path):
 
 
 def generate_image_to_image(prompt, base_image):
+    print("starting generating image...")
     image = Image.open(base_image)
     resized_image = image.resize((512, 512))
     with io.BytesIO() as buffer:
@@ -281,8 +284,8 @@ def generate_image_to_image(prompt, base_image):
     for i, image in enumerate(data["artifacts"]):
         image_data = image["base64"]
         # only for test
-        with open("test.png", "wb") as f:
-            f.write(b64decode(image["base64"]))
+        # with open("test.png", "wb") as f:
+        #     f.write(b64decode(image["base64"]))
     return image_data
 
 
@@ -307,7 +310,8 @@ def split_to_parts(reply: str):
     # # print(result)
     # return result
 
-def toSVG(infile,outpath,temppath):
+
+def toSVG(infile, outpath, temppath):
     with wImage(filename=infile) as img:
         img.format = 'svg'
         hash_object = hashlib.md5(img.make_blob())
@@ -316,7 +320,6 @@ def toSVG(infile,outpath,temppath):
         tempfile = os.path.join(temppath, f"{hex_dig}.svg")
         img.save(filename=outfile)
         img.save(filename=tempfile)
-        
 
 
 def Get_size(infile):
@@ -326,21 +329,23 @@ def Get_size(infile):
     if element_with_width is not None:
         width = int(element_with_width.get('width'))
         height = int(element_with_width.get('height'))
-        return width//2,height//2
+        return width//2, height//2
     else:
-        return 280,280
-    
+        return 280, 280
+
 
 def generate_js():
     backdrop_files = os.listdir('static/scene')
     costume_files = os.listdir('static/role')
-   
-    with open('C:/Users/11488/Desktop/react_try/scratch-gui/src/lib/default-project/index.js', 'w') as f:
+
+    with open(r'c:\Users\YunNong\Desktop\scratch-gui\src\lib\default-project/index.js', 'w') as f:
         f.write('import projectData from \'./project-data\';\n')
         for i, file in enumerate(backdrop_files):
-            f.write('import backdrop' + str(i + 1) + ' from \'!raw-loader!./' + file + '\';\n')
+            f.write('import backdrop' + str(i + 1) +
+                    ' from \'!raw-loader!./' + file + '\';\n')
         for i, file in enumerate(costume_files):
-            f.write('import costume' + str(i + 1) + ' from \'!raw-loader!./' + file + '\';\n')
+            f.write('import costume' + str(i + 1) +
+                    ' from \'!raw-loader!./' + file + '\';\n')
 
         f.write('\nconst defaultProject = translator => {\n')
         f.write('let _TextEncoder;\n')
@@ -365,7 +370,7 @@ def generate_js():
             f.write('        dataFormat: \'SVG\',\n')
             f.write('        data: encoder.encode(backdrop' + str(i + 1) + ')\n')
             f.write('    },\n')
-        
+
         for i, file in enumerate(costume_files):
             f.write('    {\n')
             f.write('        id: \'' + file.split('.')[0] + '\',\n')
@@ -375,13 +380,13 @@ def generate_js():
             f.write('    },\n')
 
         f.write('];\n};\n\nexport default defaultProject;\n')
-        
-        
+
+
 def generate_js_project():
     backdrop_files = os.listdir('static/scene')
     costume_files = os.listdir('static/role')
 
-    with open('C:/Users/11488/Desktop/react_try/scratch-gui/src/lib/default-project/project-data.js', 'w') as f:
+    with open(r'c:\Users\YunNong\Desktop\scratch-gui\src\lib\default-project\project-data.js', 'w') as f:
         f.write('import {defineMessages} from \'react-intl\';\n')
         f.write('import sharedMessages from \'../shared-messages\';\n\n')
         f.write('let messages = defineMessages({\n')
@@ -398,13 +403,15 @@ def generate_js_project():
         f.write('});\n\n')
         f.write('messages = {...messages, ...sharedMessages};\n\n')
         f.write('const defaultTranslator = msgObj => msgObj.defaultMessage;\n\n')
-        
+
         f.write('/**\n')
         f.write(' * Generates the project data.\n')
-        f.write(' * @param {function} translateFunction - A function to translate the text in the project.\n')
-        f.write(' * @return {object} The project data with multiple targets each with its own properties.\n')
+        f.write(
+            ' * @param {function} translateFunction - A function to translate the text in the project.\n')
+        f.write(
+            ' * @return {object} The project data with multiple targets each with its own properties.\n')
         f.write(' */\n')
-        
+
         f.write('const projectData = translateFunction => {\n')
         f.write('    const translator = translateFunction || defaultTranslator;\n')
         f.write('    return ({\n')
@@ -415,7 +422,8 @@ def generate_js_project():
         f.write('                isStage: true,\n')
         f.write('                name: \'Stage\',\n')
         f.write('                variables: {\n')
-        f.write('                    \'`jEk@4|i[#Fk?(8x)AV.-my variable\': [\n')
+        f.write(
+            '                    \'`jEk@4|i[#Fk?(8x)AV.-my variable\': [\n')
         f.write('                        translator(messages.variable),\n')
         f.write('                        0\n')
         f.write('                    ]\n')
@@ -426,10 +434,12 @@ def generate_js_project():
         f.write('                currentCostume: 0,\n')
         f.write('                costumes: [\n')
         for i, file in enumerate(backdrop_files):
-            center_x, center_y = Get_size(os.path.join('static/scene',file))
+            center_x, center_y = Get_size(os.path.join('static/scene', file))
             f.write('                    {\n')
-            f.write('                        assetId: \'' + file.split('.')[0] + '\',\n')
-            f.write('                        name: translator(messages.backdrop, {index: ' + str(i+1) + '}),\n')
+            f.write('                        assetId: \'' +
+                    file.split('.')[0] + '\',\n')
+            f.write(
+                '                        name: translator(messages.backdrop, {index: ' + str(i+1) + '}),\n')
             f.write('                        md5ext: \'' + file + '\',\n')
             f.write('                        dataFormat: \'svg\',\n')
             f.write(f'                        rotationCenterX: {center_x},\n')
@@ -440,20 +450,23 @@ def generate_js_project():
         f.write('                volume: 100\n')
         f.write('            },\n')
         for i, file in enumerate(costume_files):
-            center_x, center_y = Get_size(os.path.join('static/role',file))
+            center_x, center_y = Get_size(os.path.join('static/role', file))
             f.write('            {\n')
             f.write('                isStage: false,\n')
-            f.write('                name: translator(messages.sprite, {index: ' + str(i + 1) + '}),\n')
+            f.write(
+                '                name: translator(messages.sprite, {index: ' + str(i + 1) + '}),\n')
             f.write('                variables: {},\n')
             f.write('                lists: {},\n')
             f.write('                broadcasts: {},\n')
             f.write('                blocks: {},\n')
             f.write('                currentCostume: 0,\n')
             f.write('                costumes: [\n')
-        
+
             f.write('                    {\n')
-            f.write('                        assetId: \'' + file.split('.')[0] + '\',\n')
-            f.write('                        name: translator(messages.costume, {index: ' + str(1) + '}),\n')
+            f.write('                        assetId: \'' +
+                    file.split('.')[0] + '\',\n')
+            f.write(
+                '                        name: translator(messages.costume, {index: ' + str(1) + '}),\n')
             f.write('                        bitmapResolution: 1,\n')
             f.write('                        md5ext: \'' + file + '\',\n')
             f.write('                        dataFormat: \'svg\',\n')
@@ -482,6 +495,7 @@ def generate_js_project():
         f.write('};\n\n')
         f.write('export default projectData;\n')
 
+
 def test():
     string = '1. 小明：一个勇敢的男孩，喜欢探险和冒险。他在森林里迷路了，正在寻找回家的路。\n2. 小芳：一个聪明的女孩，喜欢读书和学习。她在图书馆里发现了一本神秘的书，决定破解其中的谜题。\n3. 小华：一个善良的男孩，喜欢帮助别人。他在街上看到一个老奶奶摔倒了，决定去帮助她。\n4. 小玲：一个有想象力的女孩，喜欢画画和创作。她在花园里发现了一只神奇的小鸟，决定和它成为朋友。'
     c = split_to_parts(string)
@@ -491,8 +505,27 @@ def test():
 
 
 if __name__ == "__main__":
-    generate_image_to_image("a blue star with magical sky",
-                            base_image=r"C:\Users\YunNong\Desktop\star.png")
+    # test generate image and remove background
+    # import requests
+    # from io import BytesIO
+    # generate_image_to_image("a orange fur cat, Highly detailed, Vivid Colors, white background",
+    #                         base_image=r"C:\Users\YunNong\Desktop\cat.png")
+    # with open('test.png', 'rb') as file:
+    #     image_data = file.read()
+    # url = 'http://10.73.3.223:3848/rm_bg'
+    # # 发送 POST 请求
+    # response = requests.post(url, files={'file': image_data}
+    #                          )
+
+    # # 检查响应
+    # if response.status_code == 200:
+    #     res_image = Image.open(BytesIO(response.content))
+    #     res_image.save('test_bg.png')
+    #     print('请求成功！')
+    # else:
+    #     print('请求失败！')
+    exit()
+
     # generate_draw_with_dalle("Forest with running track at the end, featuring trees and a running track. Line art, anime, colored, child style.", "2-b")
     # generate_draw_with_stable(
     #     "Anime-style human, in line art with a transparent background, exploring a magical world with a butterfly companion.",

@@ -3,4 +3,5 @@ __pycache__
 **.json
 **.png
 **.wav
+**.svg
 static

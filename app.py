@@ -6,13 +6,13 @@ import json
 from chat import create_chat_completion
 from flask_cors import CORS
 from tools import *
-from pydub import AudioSegment
 from story_dict import StoryInfo
 from PIL import Image
 import shutil
-
+from io import BytesIO
 app = Flask(__name__)
 CORS(app)
+
 os.makedirs("static", exist_ok=True)
 os.makedirs("static/codes", exist_ok=True)
 MODEL = "gpt-3.5-turbo"
@@ -27,6 +27,11 @@ control_blocks = ControlBlocks()
 sensing_blocks = SensingBlocks()
 ass_block = AssembleBlocks(motion_blocks, looks_blocks, sound_blocks,
                            events_blocks, control_blocks, sensing_blocks)
+
+
+@app.route("/hello")
+def hello():
+    return "hello"
 
 
 @app.route('/test_set', methods=['GET', 'POST'])
@@ -148,20 +153,30 @@ def generate_img_to_img():
     base_img = request.form.get("url").split(',')[1]  # base64
     base_img_bytes = base64.b64decode(base_img)
     img = Image.open(io.BytesIO(base_img_bytes)).convert('RGBA')
-
-# 创建一个新的白色背景图像，大小与原图像相同
     bg = Image.new('RGBA', img.size, (255,255,255))
 
     # 在背景上粘贴原图像（使用原图像作为遮罩以保留其透明度）
     combined = Image.alpha_composite(bg, img)
     combined.convert('RGB').save('static/temp.png', 'PNG')
-    
     content = story_info.get_act(act_name=id, key=askterm)
-    content = ['a forest with transparent background']
+    # content = content + 'Highly detailed, Vivid Colors, white background'
+    content = ['a cat, Highly detailed, Vivid Colors, white background']
     if content != []:
         image_base64 = generate_image_to_image(
             prompt=content, base_image="static/temp.png")
-        return jsonify({'status': 'success', 'url': image_base64})
+        res_image = []
+        response = requests.post(
+            'http://10.73.3.223:3848/rm_bg', files={'file': image_base64})
+        if response.status_code == 200:
+            res_image = Image.open(BytesIO(response.content))
+            res_image.save('rm_bg.png')
+            res_image = Image.open("rm_bg.png")
+            image_bytes = BytesIO()
+            res_image.save(image_bytes, format='PNG')
+            image_bytes = image_bytes.getvalue()
+            base64_image = base64.b64encode(image_bytes).decode('utf-8')
+        
+        return jsonify({'status': 'success', 'url': base64_image})
     else:
         return jsonify({'status': 'failed', 'url': None})
 
@@ -169,7 +184,7 @@ def generate_img_to_img():
 @app.route('/save_drawings', methods=['GET', 'POST'])
 def save_drawings():
     role_list = json.loads(request.form['role'])
-    project_path = 'C:/Users/11488/Desktop/react_try/scratch-gui/src/lib/default-project/'
+    project_path = r'c:\Users\YunNong\Desktop\scratch-gui\src\lib\default-project'
     assests_path = f"static/role/"
     if os.path.exists(assests_path):
         shutil.rmtree(assests_path)
@@ -181,9 +196,9 @@ def save_drawings():
         img = img.split(',')[1]
         png_path = os.path.join(assests_path, f'{i}.png')
         with open(png_path, "wb") as f:
-            f.write(b64decode(img))  
-        toSVG(png_path,project_path,assests_path)
-        
+            f.write(b64decode(img))
+        toSVG(png_path, project_path, assests_path)
+
         os.remove(png_path)  # 删除原始PNG图片
 
     # 处理scene_list
@@ -197,7 +212,7 @@ def save_drawings():
         png_path = os.path.join(assests_path, f'{i}.png')
         with open(png_path, "wb") as f:
             f.write(b64decode(img))
-        toSVG(png_path,project_path,assests_path)
+        toSVG(png_path, project_path, assests_path)
         os.remove(png_path)  # 删除原始PNG图片
     generate_js()
     generate_js_project()
@@ -216,10 +231,11 @@ def generate_code():
     audio_file = open(f'static/codes/code-question-{id}.webm', 'rb')
     transript = openai.Audio.transcribe("whisper-1", audio_file)
     content = transript["text"]
-    #test
+
+    # test
     # content = '如何实现角色翻转'
-    temp_memory = []
-    temp_memory.append({
+    code_agent = []
+    code_agent.append({
         "role":
         "user",
         "content":
@@ -227,24 +243,39 @@ def generate_code():
     答案请使用Scratch3.0中的代码块，请补充completion["prompt":{content} ->,"completion":]"""
     })
     agent_reply = create_chat_completion(model=MODEL,
-                                         messages=temp_memory,
+                                         messages=code_agent,
                                          temperature=0)
-    print("agent: ", agent_reply)
     with open(f"static/codes/agent_reply-{id}.txt", "w", encoding='utf-8') as f:
         f.write(agent_reply)
-    audio_base64 = text_to_speech(agent_reply, f"static/codes/agent-reply-{id}.mp3")
+
     extracted_reply = extract_keywords(agent_reply)
     block_list = cal_similarity(extracted_reply, ass_block)
     block_list = [block for block in block_list if block]
     print(block_list)
+
+    refine_agent = []
+    refine_agent.append({
+        "role":
+        "user",
+        "content":
+        f"""帮助我提取这段文本的信息，分点，需要精简文本，不要显示原文本：{agent_reply}
+        """
+    })
+    refine_reply = create_chat_completion(model=MODEL,
+                                          messages=refine_agent,
+                                          temperature=0)
+    print("agent: ", refine_reply)
+    audio_base64 = text_to_speech(
+        refine_reply, f"static/codes/agent-reply-{id}.mp3")
+
     output_json = 'static/codes/block_suggestion.json'
-    data={}
+    data = {}
     if os.path.exists(output_json):
         with open(output_json, 'r') as f:
             data = json.load(f)
     data[str(int(id)-1)] = block_list
     with open(output_json, 'w') as f:
-        json.dump(data, f, indent=4) 
+        json.dump(data, f, indent=4)
     # print(block_list)
     # with open(f"static/codes/block_suggestion-{id}.txt", 'w') as f:
     #     list_str = '\n'.join(str(element) for element in block_list)
