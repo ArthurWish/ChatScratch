@@ -52,7 +52,7 @@ def test_query():
 
 @app.route('/get_audio', methods=['GET', 'POST'])
 def get_audio():
-    """ transform audio to text and return"""
+    """ transform audio to text and add story info"""
     blob = request.files['file']
     act = request.form.get('act')
     assert act == "1" or act == "2" or act == "3" or act == "4"
@@ -62,6 +62,7 @@ def get_audio():
     audio_file = open(f'static/{act}+{type}.webm', 'rb')
     transcript = openai.Audio.transcribe("whisper-1", audio_file)
     content = transcript["text"]
+    print(content)
     audio_file.close()
     story_info.add(act, type, content)
     return jsonify({'status': 'success', 'content': content})
@@ -154,32 +155,25 @@ def generate_img_to_img():
     base_img_bytes = base64.b64decode(base_img)
     img = Image.open(io.BytesIO(base_img_bytes)).convert('RGBA')
     bg = Image.new('RGBA', img.size, (255,255,255))
-
+    # TODO 角色背景分开
     # 在背景上粘贴原图像（使用原图像作为遮罩以保留其透明度）
     combined = Image.alpha_composite(bg, img)
     combined.convert('RGB').save('static/temp.png', 'PNG')
     content = story_info.get_act(act_name=id, key=askterm)
-    # content = content + 'Highly detailed, Vivid Colors, white background'
-    content = ['a cat, Highly detailed, Vivid Colors, white background']
+    print("content", content)
+    content = rule_refine_drawing_prompt(translate_to_english(content))
+    # content = content +  ['Vivid Colors, white background']
+    # content = ['a cat, Highly detailed, Vivid Colors, white background']
     if content != []:
         image_base64 = generate_image_to_image(
             prompt=content, base_image="static/temp.png")
-        res_image = []
-        response = requests.post(
-            'http://10.73.3.223:3848/rm_bg', files={'file': image_base64})
-        if response.status_code == 200:
-            res_image = Image.open(BytesIO(response.content))
-            res_image.save('rm_bg.png')
-            res_image = Image.open("rm_bg.png")
-            image_bytes = BytesIO()
-            res_image.save(image_bytes, format='PNG')
-            image_bytes = image_bytes.getvalue()
-            base64_image = base64.b64encode(image_bytes).decode('utf-8')
-        
-        return jsonify({'status': 'success', 'url': base64_image})
+        if askterm == "role":
+            rmbg_image = rm_img_bg(image_base64)
+            return jsonify({'status': 'success', 'url': rmbg_image})
+        else:
+            return jsonify({'status': 'success', 'url': image_base64})
     else:
         return jsonify({'status': 'failed', 'url': None})
-
 
 @app.route('/save_drawings', methods=['GET', 'POST'])
 def save_drawings():

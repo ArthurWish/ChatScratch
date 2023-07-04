@@ -7,12 +7,13 @@ from dataclasses import asdict
 from typing import List
 from chat import create_chat_completion
 import openai
-from base64 import b64decode
+from base64 import b64decode, b64encode
 from PIL import Image
 import os
 import hashlib
 from wand.image import Image as wImage
 import xml.etree.ElementTree as ET
+from io import BytesIO
 
 
 PROMPT = """
@@ -149,6 +150,10 @@ def question_and_relpy(question):
     return agent_reply
 
 
+def chatgpt_extract_entity():
+    pass
+
+
 def generate_draw(drawing_type, drawing_content, save_path):
     temp_memory = []
     if drawing_type == "role":
@@ -156,7 +161,7 @@ def generate_draw(drawing_type, drawing_content, save_path):
             "role":
             "user",
             "content":
-            f"""你是人工智能程序的提示生成器。你的工作是提供简短的一句话描述。这里有一个关于动画风格角色的描述<{drawing_content}>。使用类似英文生成提示："Anime-style human with a transparent background, exploring a magical world with a butterfly companion. Line art, anime, colored, child style."。翻译为英语。
+            f"""你是人工智能程序的提示生成器。这里有一个描述<{drawing_content}>。我给你一个模板，然后你根据提示模板生成图像提示。提示模板："[type of art], [subject or topic], Vivid Colors, white background, [colors]"，图像提示例子：Children's illustration, a cat, playing, Vivid Colors, white background, soft lines and textures. Respond the prompt only, in English.
         """
         })
     elif drawing_type == "background":
@@ -164,7 +169,7 @@ def generate_draw(drawing_type, drawing_content, save_path):
             "role":
             "user",
             "content":
-            f"""你是人工智能程序的提示生成器。你的工作是提供简短的一句话描述。这里有一个关于动画风格背景的描述<{drawing_content}>，你需要根据<描述>决定：场景发生的地方，重点的景物。使用类似英文生成提示："Forest with running track at the end, featuring trees and a running track. Line art, anime, colored, child style."。翻译为英语。
+            f"""你是人工智能程序的提示生成器。这里有一个关于描述<{drawing_content}>，我给你一个模板，然后你根据提示模板生成图像提示。提示模板："[type of art], [subject or topic], [aesthetic details, lighting, and styles], [colors]"，图像提示例子：Children's illustration, a tree, Vivid Colors, white background, soft lines and textures. Respond the prompt only, in English.
         """
         })
     else:
@@ -172,7 +177,7 @@ def generate_draw(drawing_type, drawing_content, save_path):
     # print(temp_memory)
     agent_reply = create_chat_completion(model=MODEL,
                                          messages=temp_memory,
-                                         temperature=0)
+                                         temperature=0.7)
     print("agent: ", agent_reply)
     image_data = generate_draw_with_dalle(agent_reply, save_path)
     return image_data
@@ -244,8 +249,44 @@ def generate_draw_with_stable(prompt, save_path):
     return image_data
 
 
+def rule_refine_drawing_prompt(content):
+    """
+    very cute illustration for a children's Scratch project, A runnnig bear, Bold and Bright Illustration Styles, Digital Painting, by Pixar style, no background objects
+    """
+    return f"very cute illustration for a children's Scratch project, {content}, Watercolor Painting, 4k, no background objects"
+
+
+def chatgpt_refine_drawing_prompt(askterm, content):
+    temp_memory = []
+    if askterm == "role":
+        temp_memory.append({
+            "role":
+            "user",
+            "content":
+            f"""你是人工智能程序的提示生成器。这里有一个描述关于：<{content}>。我给你一个模板，然后你根据提示模板生成图像提示。提示模板："[type of art], [subject or topic], [aesthetic details, lighting, and styles], [colors]", 图像提示例子：Children's illustration, a cat, playing, Vivid Colors, white background, soft lines and textures. Respond the prompt only, in English.
+        """
+        })
+    elif askterm == "background":
+        temp_memory.append({
+            "role":
+            "user",
+            "content":
+            f"""你是人工智能程序的提示生成器。这里有一个描述关于：<{content}>，我给你一个模板，然后你根据提示模板生成图像提示。提示模板："[type of art], [subject or topic], [aesthetic details, lighting, and styles], [colors]"，图像提示例子：Children's illustration, a tree, Vivid Colors, white background, soft lines and textures. Respond the prompt only, in English.
+        """
+        })
+    else:
+        raise "Not valid drawing type"
+    # print(temp_memory)
+    agent_reply = create_chat_completion(model=MODEL,
+                                         messages=temp_memory,
+                                         temperature=0.7)
+    print("agent: ", agent_reply)
+    return agent_reply
+
+
 def generate_image_to_image(prompt, base_image):
-    print("starting generating image...")
+    print("[image to image]starting generating image from base image...")
+    print("[image to prompt]", prompt)
     image = Image.open(base_image)
     resized_image = image.resize((512, 512))
     with io.BytesIO() as buffer:
@@ -284,8 +325,8 @@ def generate_image_to_image(prompt, base_image):
     for i, image in enumerate(data["artifacts"]):
         image_data = image["base64"]
         # only for test
-        # with open("test.png", "wb") as f:
-        #     f.write(b64decode(image["base64"]))
+        with open("image_to_image.png", "wb") as f:
+            f.write(b64decode(image["base64"]))
     return image_data
 
 
@@ -298,17 +339,6 @@ def split_to_parts(reply: str):
             reply_list.append(story)
 
     return reply_list
-    # print(lines[0])
-    # result = []
-    # for line in lines:
-    #     parts = line.split('：')
-    #     # 去掉编号部分
-    #     if len(parts) == 2:
-    #         parts[0] = parts[0].split('. ')[-1]
-    #     result.append(parts)
-
-    # # print(result)
-    # return result
 
 
 def toSVG(infile, outpath, temppath):
@@ -496,6 +526,38 @@ def generate_js_project():
         f.write('export default projectData;\n')
 
 
+def translate_to_english(content):
+    """将我给定的文本翻译为英文，只回答结果："""
+    temp_memory = []
+    temp_memory.append({
+        "role":
+        "user",
+        "content":
+        f"""将我给定的文本翻译为英文，只回答结果：{content}
+    """
+    })
+    # print(temp_memory)
+    return create_chat_completion(model=MODEL,
+                                  messages=temp_memory,
+                                  temperature=0)
+
+
+def rm_img_bg(image_base64):
+    response = requests.post(
+        'http://10.73.3.223:3848/rm_bg', files={'file': image_base64})
+    if response.status_code == 200:
+        res_image = Image.open(BytesIO(response.content))
+        res_image.save('rm_bg.png')
+        res_image = Image.open("rm_bg.png")
+        image_bytes = BytesIO()
+        res_image.save(image_bytes, format='PNG')
+        image_bytes = image_bytes.getvalue()
+        base64_image = b64encode(image_bytes).decode('utf-8')
+        return base64_image
+    else:
+        return None
+
+
 def test():
     string = '1. 小明：一个勇敢的男孩，喜欢探险和冒险。他在森林里迷路了，正在寻找回家的路。\n2. 小芳：一个聪明的女孩，喜欢读书和学习。她在图书馆里发现了一本神秘的书，决定破解其中的谜题。\n3. 小华：一个善良的男孩，喜欢帮助别人。他在街上看到一个老奶奶摔倒了，决定去帮助她。\n4. 小玲：一个有想象力的女孩，喜欢画画和创作。她在花园里发现了一只神奇的小鸟，决定和它成为朋友。'
     c = split_to_parts(string)
@@ -508,8 +570,12 @@ if __name__ == "__main__":
     # test generate image and remove background
     # import requests
     # from io import BytesIO
-    # generate_image_to_image("a orange fur cat, Highly detailed, Vivid Colors, white background",
-    #                         base_image=r"C:\Users\YunNong\Desktop\cat.png")
+    # prompt = refine_drawing_prompt(askterm="background", content="bear")
+    # 需要明确角色的姿势或者动作
+    prompt = "very cute illustration for a children's Scratch project, a brown bear, Watercolor Painting, 4k, no background objects"
+    generate_image_to_image(
+        prompt, base_image=r"C:\Users\YunNong\Desktop\bear.png")
+
     # with open('test.png', 'rb') as file:
     #     image_data = file.read()
     # url = 'http://10.73.3.223:3848/rm_bg'
@@ -524,11 +590,11 @@ if __name__ == "__main__":
     #     print('请求成功！')
     # else:
     #     print('请求失败！')
-    exit()
-
+    # exit()
+    # generate_draw(drawing_type="background", drawing_content="mountain", save_path="1.png")
     # generate_draw_with_dalle("Forest with running track at the end, featuring trees and a running track. Line art, anime, colored, child style.", "2-b")
     # generate_draw_with_stable(
-    #     "Anime-style human, in line art with a transparent background, exploring a magical world with a butterfly companion.",
+    #     "Art Nouveau, enchanted forest, fairies dancing, intricate patterns and delicate curves, vibrant hues of emerald green and golden sunlight filtering through the trees",
     #     "1")
     # test()
     exit(0)
