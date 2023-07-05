@@ -2,6 +2,9 @@ from typing import List
 import Levenshtein as lv
 import xml.etree.ElementTree as ET
 from dataclasses import asdict
+from block_types import *
+import re
+from chat import create_chat_completion
 
 
 PROMPT = """
@@ -70,7 +73,36 @@ PROMPT = """
 
 MODEL = "gpt-3.5-turbo"
 
+def chatgpt_extract_code(text):
+    code_agent = []
+    code_agent.append({
+        "role":
+        "user",
+        "content":
+        f"""提取<文本>中包含的代码，按行输出文本中的代码:<{text}>"""
+    })
+    agent_reply = create_chat_completion(model=MODEL,
+                                         messages=code_agent,
+                                         temperature=0)
+    print(agent_reply)
+    pattern = r'"([^"]*)"'
+    matches = re.findall(pattern, agent_reply)
+    return matches
+    
+def extract_code(text):
+    code_blocks = re.findall(r"```([^`]+)```", text, re.DOTALL)
+    extracted_code = []
+    
+    for code_block in code_blocks:
+        lines = code_block.strip('`').split('\n')
+        for line in lines:
+            if line.strip() and not line.strip().startswith('#'):
+                extracted_code.append(line.strip())
+    
+    return extracted_code
+
 def extract_keywords(s) -> List:
+    code_lines = extract_code(s)
     # 删除所有的","
     s = s.replace('",', '')
     # 使用""来分割字符串
@@ -83,10 +115,12 @@ def extract_keywords(s) -> List:
             keywords.append(i.strip())
     return keywords
 
+
 def test():
     s = '"when green flag clicked","say [你追我啊] for [2] seconds","repeat until <touching [rabbit]>","move [10] steps","end","play sound [Boing] until done"'
     keywords = extract_keywords(s)
     print(keywords)
+
 
 def cal_similarity(reply_list, blocks):
     # 计算相似度
@@ -114,3 +148,68 @@ def cal_similarity(reply_list, blocks):
                 # print('Similarity is', max_similarity, value)
         block_list.append(temp_block)
     return block_list
+
+
+def generate_code_step(content):
+    '''
+    使用哪些模块（Motion,Looks,Sound,Events,Control,Sensing,Operators,Variables）
+    运动、外观、声音、事件、控制、侦测、运算、变量
+    '''
+    code_agent = []
+    code_agent.append({
+        "role":
+        "user",
+        "content":
+        f"""你是一个专业的Scratch编程老师。当我询问你如何实现一个Scratch功能的时候，你需要分两步告诉我：
+        步骤1：使用哪些模块（Motion,Looks,Sound,Events,Control,Sensing,Operators,Variables）
+        步骤2：使用Scratch3.0中的代码块，按照尖括号内的代码的风格：<{PROMPT}>。回答问题，请补充completion["prompt":{content} ->,"completion":]"""
+    })
+    agent_reply = create_chat_completion(model=MODEL,
+                                         messages=code_agent,
+                                         temperature=0)
+    return agent_reply
+
+def extract_step(input_text):
+    # 查找步骤1的位置
+    step1_index = input_text.find("步骤1")
+    step2_index = input_text.find("步骤2")
+    if step1_index != -1:
+        # 提取步骤1后面的内容
+        step1_content = input_text[step1_index + len("步骤1") + 1:]
+        step2_index_1 = step1_content.find("步骤2")
+        if step2_index_1 != -1:
+            # 如果找到步骤2，则截取步骤1后面到步骤2之间的内容
+            step1_content = step1_content[:step2_index_1]
+        # 去除换行符和空格
+        step1_content = step1_content.strip()
+        # 查找步骤2的位置
+    if step2_index != -1:
+        # 提取步骤2后面的内容
+        step2_content = input_text[step2_index + len("步骤2") + 1:]
+        # 去除换行符和空格
+        step2_content = step2_content.strip()
+    return step1_content, step2_content
+
+def main():
+    motion_blocks = MotionBlocks()
+    looks_blocks = LooksBlocks()
+    sound_blocks = SoundBlocks()
+    events_blocks = EventsBlocks()
+    control_blocks = ControlBlocks()
+    sensing_blocks = SensingBlocks()
+    ass_block = AssembleBlocks(motion_blocks, looks_blocks, sound_blocks,
+                            events_blocks, control_blocks, sensing_blocks)
+    # 角色状态（单一角色），对话（事件、控制）（两个角色、三个角色）
+    content = generate_code_step("当角色A说你好，角色B回复你好")
+    r1, step2 = extract_step(content)
+    print("step1:", r1)
+    print(step2)
+    extracted_reply = chatgpt_extract_code(step2)
+    print("extracted_reply", extracted_reply)
+    block_list = cal_similarity(extracted_reply, ass_block)
+    block_list = [block for block in block_list if block]
+    print(block_list)
+
+main()
+# print("r1", r1, "\nr2", r2)
+

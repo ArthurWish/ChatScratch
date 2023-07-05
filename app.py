@@ -155,7 +155,7 @@ def generate_img_to_img():
     base_img = request.form.get("url").split(',')[1]  # base64
     base_img_bytes = base64.b64decode(base_img)
     img = Image.open(io.BytesIO(base_img_bytes)).convert('RGBA')
-    bg = Image.new('RGBA', img.size, (255,255,255))
+    bg = Image.new('RGBA', img.size, (255, 255, 255))
     # TODO 角色背景分开
     # 在背景上粘贴原图像（使用原图像作为遮罩以保留其透明度）
     combined = Image.alpha_composite(bg, img)
@@ -175,6 +175,7 @@ def generate_img_to_img():
             return jsonify({'status': 'success', 'url': image_base64})
     else:
         return jsonify({'status': 'failed', 'url': None})
+
 
 @app.route('/save_drawings', methods=['GET', 'POST'])
 def save_drawings():
@@ -229,39 +230,33 @@ def generate_code():
 
     # test
     # content = '如何实现角色翻转'
-    code_agent = []
-    code_agent.append({
-        "role":
-        "user",
-        "content":
-        f"""你是一个专业的Scratch编程老师。你的任务是以一致的风格回答问题：{PROMPT}
-    答案请使用Scratch3.0中的代码块，请补充completion["prompt":{content} ->,"completion":]"""
-    })
-    agent_reply = create_chat_completion(model=MODEL,
-                                         messages=code_agent,
-                                         temperature=0)
+    content = generate_code_step(content)
+    step1, step2 = extract_step(content)
+    # step1
     with open(f"static/codes/agent_reply-{id}.txt", "w", encoding='utf-8') as f:
-        f.write(agent_reply)
-
-    extracted_reply = extract_keywords(agent_reply)
+        f.write(step1)
+    audio_base64 = text_to_speech(step1, f"static/codes/agent-reply-{id}.mp3")
+    # f.write(step2)
+    # step2
+    extracted_reply = chatgpt_extract_code(step2)
     block_list = cal_similarity(extracted_reply, ass_block)
     block_list = [block for block in block_list if block]
     print(block_list)
 
-    refine_agent = []
-    refine_agent.append({
-        "role":
-        "user",
-        "content":
-        f"""帮助我提取这段文本的信息，分点，需要精简文本，不要显示原文本：{agent_reply}
-        """
-    })
-    refine_reply = create_chat_completion(model=MODEL,
-                                          messages=refine_agent,
-                                          temperature=0)
-    print("agent: ", refine_reply)
-    audio_base64 = text_to_speech(
-        refine_reply, f"static/codes/agent-reply-{id}.mp3")
+    # refine_agent = []
+    # refine_agent.append({
+    #     "role":
+    #     "user",
+    #     "content":
+    #     f"""帮助我提取这段文本的信息，分点，需要精简文本，不要显示原文本：{agent_reply}
+    #     """
+    # })
+    # refine_reply = create_chat_completion(model=MODEL,
+    #                                       messages=refine_agent,
+    #                                       temperature=0)
+    # print("agent: ", refine_reply)
+    # audio_base64 = text_to_speech(
+    #     refine_reply, f"static/codes/agent-reply-{id}.mp3")
 
     output_json = 'static/codes/block_suggestion.json'
     data = {}
