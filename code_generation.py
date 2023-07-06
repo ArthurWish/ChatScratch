@@ -1,3 +1,4 @@
+import json
 from typing import List
 import Levenshtein as lv
 import xml.etree.ElementTree as ET
@@ -6,7 +7,13 @@ from block_types import *
 import re
 from chat import create_chat_completion
 
-
+PROMPT2 = """
+1. {"prompt":"Sprite说话 ->","completion":" \"when green flag clicked\",\"say [Hello!] for [2] seconds\",\"say [Imagine if...] for [2] seconds\"\n"}
+2. {"prompt":"点击Sprite，使Sprite变大和变小 ->","completion":" \"when this sprite clicked\",\"repeat [2]\",\"set size to [125]%\",\"play sound [Hi Na Tabla] until done\",\"set size to [100]%\"\n"}
+3. {"prompt":"按下左右键，使Sprite左右移动 ->","completion":" \"when [right arrow] key pressed\",\"change x by [10]\",\"when [left arrow] key pressed\",\"change x by [-10]\"\n"}
+4. {"prompt":"小猫和小狗对话 ->","completion":"Cat:\"when green flag clicked\",\"say [Hello!] for [2] seconds\",\"broadcast [message1]\"\nDog:\"when I recieve [massage1]\",\"wait [2] seconds\",\"say [Hello!] for [2] seconds\"\n"}
+5. {"prompt":"Sprite A和Sprite B赛跑 ->","completion":"Sprite A:\"when green flag clicked\",\"forever\",\"control_repeat[10]\",\"move [10] steps\",\"event_broadcast[message1]andwait\"\nSprite B:\"when I recieve [massage1]\",\"control_repeat[10]\",\"move [5] steps\"\n"}
+"""
 PROMPT = """
 {"prompt":"点击角色，使角色变色 ->","completion":" \"when this sprite clicked\",\"change [color] effect by [25]\"\n"}
 {"prompt":"点击角色，使角色一直旋转 ->","completion":" \"when this sprite clicked\",\"repeat [10]\",\"turn [18] degrees\"\n"}
@@ -79,15 +86,19 @@ def chatgpt_extract_code(text):
         "role":
         "user",
         "content":
-        f"""提取<文本>中包含的代码，按行输出文本中的代码:<{text}>"""
+        f"""提取<文本>中包含的code：<{text}>，并以json形式输出，其中包含以下key:code"""
     })
     agent_reply = create_chat_completion(model=MODEL,
                                          messages=code_agent,
                                          temperature=0)
     print(agent_reply)
-    pattern = r'"([^"]*)"'
-    matches = re.findall(pattern, agent_reply)
-    return matches
+    agent_reply = json.loads(agent_reply)["code"]
+    if isinstance(agent_reply, list):
+        return agent_reply
+    elif isinstance(agent_reply, str):
+        return agent_reply.splitlines()
+    else:
+        raise f"Not valid:{type(agent_reply)}, please check the content" 
     
 def extract_code(text):
     code_blocks = re.findall(r"```([^`]+)```", text, re.DOTALL)
@@ -200,12 +211,13 @@ def main():
     ass_block = AssembleBlocks(motion_blocks, looks_blocks, sound_blocks,
                             events_blocks, control_blocks, sensing_blocks)
     # 角色状态（单一角色），对话（事件、控制）（两个角色、三个角色）
-    content = generate_code_step("当角色A说你好，角色B回复你好")
+    content = generate_code_step("小兔子和乌龟赛跑")
+    print(content)
     r1, step2 = extract_step(content)
     print("step1:", r1)
     print(step2)
     extracted_reply = chatgpt_extract_code(step2)
-    print("extracted_reply", extracted_reply)
+    print("extracted_reply:\n", extracted_reply)
     block_list = cal_similarity(extracted_reply, ass_block)
     block_list = [block for block in block_list if block]
     print(block_list)
