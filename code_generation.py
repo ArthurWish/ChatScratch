@@ -98,7 +98,7 @@ def chatgpt_extract_code(text):
     elif isinstance(agent_reply, str):
         return agent_reply.splitlines()
     else:
-        raise f"Not valid:{type(agent_reply)}, please check the content" 
+        return f"Not valid:{type(agent_reply)}, please check the content" 
     
 def extract_code(text):
     code_blocks = re.findall(r"```([^`]+)```", text, re.DOTALL)
@@ -222,6 +222,6 @@ def main():
     block_list = [block for block in block_list if block]
     print(block_list)
 
-main()
+# main()
 # print("r1", r1, "\nr2", r2)
 
