@@ -222,6 +222,6 @@ def main():
     block_list = [block for block in block_list if block]
     print("block_list:\n", block_list)
 
-main()
+# main()
 # print("r1", r1, "\nr2", r2)
 

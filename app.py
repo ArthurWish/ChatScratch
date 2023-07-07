@@ -74,6 +74,7 @@ def generate():
     """return images and sounds"""
     id = request.form.get('id') # part id
     index_id = request.form.get('index_id') # current part, which image
+    index_id = int(index_id)
     assert id == "1" or id == "2" or id == "3"
     assests_path = f"static/{id}"
     os.makedirs(assests_path, exist_ok=True)
@@ -175,7 +176,7 @@ def generate_img_to_img():
     combined = Image.alpha_composite(bg, img)
     combined.convert('RGB').save('static/temp.png', 'PNG')
     content = story_info.get_act(act_name=id, key=askterm)
-    current_role = content[index_id]
+    current_role = content[int(index_id)]
     print("current_role", current_role)
     content = rule_refine_drawing_prompt(translate_to_english(current_role))
     # content = content +  ['Vivid Colors, white background']
