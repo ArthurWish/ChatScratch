@@ -84,20 +84,23 @@ def generate():
     temp_memory = []
     # query
     content = story_info.get_act(act_name=id, key=askterm)
+    print("content", content)
+    print("index_id", index_id)
     # user already input
-    if len(content) >= index_id:
+    if len(content) >= index_id+1:
         current_drawing = content[index_id]
         print("current_drawing", current_drawing)
         for index in range(4):
             output["sound"].append(text_to_speech(
                 current_drawing, f"{assests_path}/sound-{index}"))
             output["image"].append(
-                current_drawing(drawing_type=askterm,
-                              drawing_content=content,
+                generate_draw(drawing_type=askterm,
+                              drawing_content=current_drawing,
                               save_path=f'{assests_path}/image-{index}'))
     # user not input
-    elif len(content) < index_id:
+    elif len(content) < index_id+1:
         prompt = story_info.get_prompt(id, askterm)
+        print("story_info.get_prompt:\n", prompt)
         temp_memory.append(prompt)
         agent_reply = create_chat_completion(model=MODEL,
                                              messages=temp_memory,
@@ -290,4 +293,4 @@ def generate_code():
 
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    app.run(host='0.0.0.0', port=5000, debug=False)
