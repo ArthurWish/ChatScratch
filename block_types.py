@@ -52,7 +52,7 @@ class SoundBlocks:
 @dataclass
 class EventsBlocks:
     event_whenflagclicked: str = "event_whenflagclicked"
-    event_whenkeypressed: str = "event_whenkeypressed"
+    event_whenkeypressed: str = "event_whenkeypressed" # when [right arrow] key pressed
     event_whenthisspriteclicked: str = "event_whenthisspriteclicked"
     event_whenbackdropswitchesto: str = "event_whenbackdropswitchesto"
     event_whengreaterthan: str = "event_whengreaterthan"

@@ -64,16 +64,25 @@ class StoryInfo:
         assert part_id == 1 or part_id == 2 or part_id == 3
         # act1 = self.print_act('act1')
         # act2 = self.print_act('act2')
+        # total settings
         str1 = f"""你是一个故事编剧，儿童正在创作一个共三幕的故事，每一幕都包含人物、场景和事件三个部分。"""
         if part_id == 1:
             str2 = f'目前处于第1幕。'
             if askterm == 'role':
+                role = self.get_act('act1', 'role')
                 str3 = f'在第1幕中,'
-                str4 = '请你给出四个角色供我绘画使用，不超过100个字。'
+                if role == []:
+                    str4 = '请你给出四个角色供我绘画使用，不超过100个字。'
+                else:
+                    str4 = f'我有角色：{role}，请你给出与角色{role}相关的四个角色供我绘画使用，不超过100个字'
             elif askterm == 'background':
                 role = self.get_act('act1', 'role')
+                background = self.get_act('act1', 'background')
                 str3 = f'在第1幕中,已经确定了角色是{role}。'
-                str4 = f'给出四种符合故事逻辑的场景供我绘画使用，不超过100个字。'
+                if background == []:
+                    str4 = f'给出四种符合故事逻辑的场景供我绘画使用，不超过100个字。'
+                else:
+                    str4 = f'我已经绘制了场景：{background}，请你给出四种与场景{background}相关的四种场景供我绘画使用，不超过100个字。'
             else:
                 role = self.get_act('act1', 'role')
                 background = self.get_act('act1', 'background')
@@ -84,12 +93,20 @@ class StoryInfo:
             str2 = f"""之前已经确认的部分是：第1幕，{act1}。"""
             if askterm == 'role':
                 role_act1 = self.get_act("act1", "role")
-                str3 = f'在第1幕中,已经存在的角色是{role_act1}。'
-                str4 = f'根据第1幕，请你给出四种符合故事逻辑的角色供我绘画使用。'
+                role_act2 = self.get_act("act2", "role")
+                if role_act2 == []:
+                    str3 = f'已经存在的角色是{role_act1}。'
+                else:
+                    str3 = f'已经存在的角色是{role_act1+role_act2}。'
+                str4 = f'根据这些已经绘制好的角色，请你给出四种符合故事逻辑的角色供我绘画使用。'
             elif askterm == 'background':
                 role_act2 = self.get_act('act2', 'role')
-                str3 = f'在第2幕中,已经确定了角色是{role_act2}。'
-                str4 = f'根据第1幕，请你给出四种符合故事逻辑的场景供我绘画使用。'
+                background = self.get_act('act2', 'background')
+                str3 = f'在第2幕中,已经存在的角色是{role_act1+role_act2}。'
+                if background == []:
+                    str4 = f'根据第1幕，请你给出四种符合故事逻辑的场景供我绘画使用。'
+                else:
+                    str4 = f'我已经绘制了场景：{background}，请你给出四种与场景{background}相关的四种场景供我绘画使用，不超过100个字。'
             else:
                 role = self.get_act('act2', 'role')
                 background = self.get_act('act2', 'background')
@@ -101,12 +118,22 @@ class StoryInfo:
             str2 = f"""之前已经确认的部分是：第1幕{act1}和第2幕{act2}。"""
             if askterm == 'role':
                 role_act2 = self.get_act("act2", "role")
-                str3 = f'在第2幕中,已经存在的角色是{role_act2}。'
-                str4 = f'根据第1幕和第2幕，请你给出四种符合故事逻辑的角色供我绘画使用。'
+                role_act3 = self.get_act("act3", "role")
+                if role_act3 == []:
+                    str3 = f'在第2幕中,已经存在的角色是{role_act2}。'
+                else:
+                    str3 = f'已经存在的角色是{role_act1+role_act2+role_act3}。'
+                str4 = f'根据这些已经绘制好的角色，请你给出四种符合故事逻辑的角色供我绘画使用。'
+                
             elif askterm == 'background':
                 role = self.get_act('act3', 'role')
+                background = self.get_act('act3', 'background')
                 str3 = f'在第3幕中,已经确定了角色是{role}'
-                str4 = f'根据第1幕和第2幕，请你给出四种符合故事逻辑的场景供我绘画使用。'
+                if background == []:
+                    
+                    str4 = f'根据第1幕和第2幕，请你给出四种符合故事逻辑的场景供我绘画使用。'
+                else:
+                    str4 = f'根据第1幕和第2幕，以及第三幕的场景{background}，请你给出四种符合故事逻辑的场景供我绘画使用。'
             else:
                 role = self.get_act('act3', 'role')
                 background = self.get_act('act3', 'background')

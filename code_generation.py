@@ -211,7 +211,7 @@ def main():
     ass_block = AssembleBlocks(motion_blocks, looks_blocks, sound_blocks,
                             events_blocks, control_blocks, sensing_blocks)
     # 角色状态（单一角色），对话（事件、控制）（两个角色、三个角色）
-    content = generate_code_step("小兔子和乌龟赛跑")
+    content = generate_code_step("使用键盘控制角色移动")
     print(content)
     r1, step2 = extract_step(content)
     print("step1:", r1)
@@ -220,8 +220,8 @@ def main():
     print("extracted_reply:\n", extracted_reply)
     block_list = cal_similarity(extracted_reply, ass_block)
     block_list = [block for block in block_list if block]
-    print(block_list)
+    print("block_list:\n", block_list)
 
-# main()
+main()
 # print("r1", r1, "\nr2", r2)
 

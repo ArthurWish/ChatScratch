@@ -72,7 +72,8 @@ def get_audio():
 @app.route('/generate', methods=['GET', 'POST'])
 def generate():
     """return images and sounds"""
-    id = request.form.get('id')
+    id = request.form.get('id') # part id
+    index_id = request.form.get('index_id') # current part, which image
     assert id == "1" or id == "2" or id == "3"
     assests_path = f"static/{id}"
     os.makedirs(assests_path, exist_ok=True)
@@ -82,7 +83,19 @@ def generate():
     temp_memory = []
     # query
     content = story_info.get_act(act_name=id, key=askterm)
-    if content == []:
+    # user already input
+    if len(content) >= index_id:
+        current_drawing = content[index_id]
+        print("current_drawing", current_drawing)
+        for index in range(4):
+            output["sound"].append(text_to_speech(
+                current_drawing, f"{assests_path}/sound-{index}"))
+            output["image"].append(
+                current_drawing(drawing_type=askterm,
+                              drawing_content=content,
+                              save_path=f'{assests_path}/image-{index}'))
+    # user not input
+    elif len(content) < index_id:
         prompt = story_info.get_prompt(id, askterm)
         temp_memory.append(prompt)
         agent_reply = create_chat_completion(model=MODEL,
@@ -147,6 +160,7 @@ def generate_task():
 @app.route('/generate_img_to_img', methods=['GET', 'POST'])
 def generate_img_to_img():
     id = request.form.get("id")
+    index_id = request.form.get("index_id")
     assests_path = f"static/{id}"
     assert id == "1" or id == "2" or id == "3"
     askterm = request.form.get('askterm')
@@ -161,8 +175,9 @@ def generate_img_to_img():
     combined = Image.alpha_composite(bg, img)
     combined.convert('RGB').save('static/temp.png', 'PNG')
     content = story_info.get_act(act_name=id, key=askterm)
-    print("content", content)
-    content = rule_refine_drawing_prompt(translate_to_english(content))
+    current_role = content[index_id]
+    print("current_role", current_role)
+    content = rule_refine_drawing_prompt(translate_to_english(current_role))
     # content = content +  ['Vivid Colors, white background']
     # content = ['a cat, Highly detailed, Vivid Colors, white background']
     if content != []:
