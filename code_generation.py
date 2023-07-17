@@ -1,7 +1,6 @@
 import json
 from typing import List
 import Levenshtein as lv
-import xml.etree.ElementTree as ET
 from dataclasses import asdict
 from block_types import *
 import re

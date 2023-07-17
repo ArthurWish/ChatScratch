@@ -1,20 +1,10 @@
-import configparser
-import io
 import Levenshtein as lv
-import requests
 from block_types import *
-from dataclasses import asdict
-from typing import List
 from chat import create_chat_completion
-import openai
-from base64 import b64decode, b64encode
-from PIL import Image
 import os
 import hashlib
 from wand.image import Image as wImage
 import xml.etree.ElementTree as ET
-from io import BytesIO
-
 
 MODEL = "gpt-3.5-turbo"
 
@@ -36,49 +26,6 @@ def question_and_relpy(question):
 
 def chatgpt_extract_entity():
     pass
-
-
-def generate_draw(drawing_type, drawing_content, save_path):
-    temp_memory = []
-    if drawing_type == "role":
-        temp_memory.append({
-            "role":
-            "user",
-            "content":
-            f"""你是人工智能程序的提示生成器。这里有一个描述<{drawing_content}>。我给你一个模板，然后你根据提示模板生成图像提示。提示模板："[type of art], [subject or topic], Vivid Colors, white background, [colors]"，图像提示例子：Children's illustration, a cat, playing, Vivid Colors, white background, soft lines and textures. Respond the prompt only, in English.
-        """
-        })
-    elif drawing_type == "background":
-        temp_memory.append({
-            "role":
-            "user",
-            "content":
-            f"""你是人工智能程序的提示生成器。这里有一个关于描述<{drawing_content}>，我给你一个模板，然后你根据提示模板生成图像提示。提示模板："[type of art], [subject or topic], [aesthetic details, lighting, and styles], [colors]"，图像提示例子：Children's illustration, a tree, Vivid Colors, white background, soft lines and textures. Respond the prompt only, in English.
-        """
-        })
-    else:
-        raise "Not valid drawing type"
-    # print(temp_memory)
-    agent_reply = create_chat_completion(model=MODEL,
-                                         messages=temp_memory,
-                                         temperature=0.7)
-    print("agent: ", agent_reply)
-    image_data = generate_draw_with_dalle(agent_reply, save_path)
-    return image_data
-
-
-def generate_draw_with_dalle(prompt, save_path):
-    # image_data_list = []
-    response = openai.Image.create(prompt=prompt,
-                                   n=1,
-                                   size="256x256",
-                                   response_format="b64_json")
-    for index, image_dict in enumerate(response["data"]):
-        image_data_return = image_dict["b64_json"]
-        # image_data_list.append(image_data)
-        with open(f"{save_path}.png", mode="wb") as png:
-            png.write(b64decode(image_dict["b64_json"]))
-    return image_data_return
 
 
 def split_to_parts(reply: str):

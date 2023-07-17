@@ -104,12 +104,13 @@ def generate():
         temp_memory.append(prompt)
         agent_reply = create_chat_completion(model=MODEL,
                                              messages=temp_memory,
-                                             temperature=0)
+                                             temperature=0.3)
         print("agent: ", agent_reply)
         if '\n' not in agent_reply:
             raise f"ERROR! Please check {agent_reply}"
         reply_splited = split_to_parts(agent_reply)
-        assert len(reply_splited) == 4
+        if len(reply_splited) != 4:
+            return "the reply is not 4"
         for index, reply in enumerate(reply_splited):
             output["sound"].append(text_to_speech(
                 reply, f"{assests_path}/sound-{index}"))
@@ -185,7 +186,7 @@ def generate_img_to_img():
     # content = content +  ['Vivid Colors, white background']
     # content = ['a cat, Highly detailed, Vivid Colors, white background']
     if content != []:
-        image_base64 = generate_image_to_image(
+        image_base64 = generate_image_to_image_v2(
             prompt=content, base_image="static/temp.png")
         if askterm == "role":
             rmbg_image = rm_img_bg(image_base64)
