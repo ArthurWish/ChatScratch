@@ -60,11 +60,10 @@ def get_audio():
     type = request.form.get('type')
     assert type == "role" or type == "background" or type == "event" or type == "code"
     blob.save(f'static/{act}+{type}.webm')
-    audio_file = open(f'static/{act}+{type}.webm', 'rb')
-    transcript = openai.Audio.transcribe("whisper-1", audio_file)
+    with open(f'static/{act}+{type}.webm', 'rb') as f:
+        transcript = openai.Audio.transcribe("whisper-1", f)
     content = transcript["text"]
     print(content)
-    audio_file.close()
     story_info.add(act, type, content)
     return jsonify({'status': 'success', 'content': content})
 
@@ -294,4 +293,4 @@ def generate_code():
 
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=False)
+    app.run(host='0.0.0.0', port=5000, debug=True)

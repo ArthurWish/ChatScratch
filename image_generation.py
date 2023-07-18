@@ -74,7 +74,7 @@ def rule_refine_drawing_prompt(content):
     """
     very cute illustration for a children's Scratch project, A runnnig bear, Bold and Bright Illustration Styles, Digital Painting, by Pixar style, no background objects
     """
-    return f"very cute illustration for a children's Scratch project, {content}, by studio ghibli, makoto shinkai, by artgerm, by wlop, by greg rutkowski, Watercolor Painting, 4k, no background objects"
+    return f"very cute illustration for a children's Scratch project, {content}, by studio ghibli, makoto shinkai, by artgerm, by wlop, by greg rutkowski, Watercolor Painting, 4k"
 
 
 def chatgpt_refine_drawing_prompt(askterm, content):
@@ -214,8 +214,8 @@ def generate_draw_with_stable_v2(prompt, save_path):
     url = "http://10.73.3.223:55233"
     payload = {
         "prompt": prompt,
-        "negative_prompt": "complex background",
-        "steps": 50,
+        "negative_prompt": "ugly, ugly arms, ugly hands, ugly teeth, ugly nose, ugly mouth, ugly eyes, ugly ears,",
+        "steps": 25,
         "sampler_name": "Euler a",
         "cfg_scale": 7,
         "width":512,
@@ -247,14 +247,14 @@ def generate_image_to_image_v2(prompt, base_image):
     img2img_payload = {
         "init_images": [img_base64],
         "prompt": prompt,
-        "negative_prompt": "complex background",
+        "negative_prompt": "ugly, ugly arms, ugly hands, ugly teeth, ugly nose, ugly mouth, ugly eyes, ugly ears",
         "denoising_strength": 0.5,
         "width": 512,
         "height": 512,
         "cfg_scale": 7,
         "sampler_name": "Euler a",
         "restore_faces": False,
-        "steps": 50,
+        "steps": 25,
         "script_args": ["outpainting mk2", ]
     }
     response = requests.post(
