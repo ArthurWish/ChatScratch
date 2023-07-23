@@ -112,7 +112,7 @@ def generate_draw(drawing_type, drawing_content, save_path):
             "role":
             "user",
             "content":
-            f"""你是人工智能程序的提示生成器。这里有一个描述<{drawing_content}>。我给你一个模板，然后你根据提示模板生成图像提示。提示模板："[type of art], [subject or topic], by studio ghibli, makoto shinkai, by artgerm, by wlop, by greg rutkowski, Vivid Colors, white background, [colors]"，图像提示例子：Children's illustration,by studio ghibli, makoto shinkai, by artgerm, by wlop, by greg rutkowski, a cat, playing, Vivid Colors, white background, soft lines and textures. Respond the prompt only, in English.
+            f"""你是人工智能程序的提示生成器。这里有一个描述<{drawing_content}>。我给你一个模板，然后你根据提示模板生成图像提示。提示模板："[type of art], [subject or topic], by studio ghibli, makoto shinkai, by artgerm, by wlop, by greg rutkowski, Vivid Colors, white background, [colors]"，图像提示例子：Very cute children's illustration,by studio ghibli, makoto shinkai, by artgerm, by wlop, by greg rutkowski, a cat, playing, Vivid Colors, white background, soft lines and textures. Respond the prompt only, in English.
         """
         })
     elif drawing_type == "background":
@@ -120,7 +120,7 @@ def generate_draw(drawing_type, drawing_content, save_path):
             "role":
             "user",
             "content":
-            f"""你是人工智能程序的提示生成器。这里有一个关于描述<{drawing_content}>，我给你一个模板，然后你根据提示模板生成图像提示。提示模板："[type of art], [subject or topic], [aesthetic details, lighting, and styles], [colors]"，图像提示例子：Children's illustration,by studio ghibli, makoto shinkai, by artgerm, by wlop, by greg rutkowski, a tree, Vivid Colors, white background, soft lines and textures. Respond the prompt only, in English.
+            f"""你是人工智能程序的提示生成器。这里有一个关于描述<{drawing_content}>，我给你一个模板，然后你根据提示模板生成图像提示。提示模板："[type of art], [subject or topic], [aesthetic details, lighting, and styles], [colors]"，图像提示例子：Very cute children's illustration,by studio ghibli, makoto shinkai, by artgerm, by wlop, by greg rutkowski, a tree, Vivid Colors, white background, soft lines and textures. Respond the prompt only, in English.
         """
         })
     else:
@@ -130,6 +130,7 @@ def generate_draw(drawing_type, drawing_content, save_path):
                                          messages=temp_memory,
                                          temperature=1.2)
     print("agent: ", agent_reply)
+    # TODO 多卡推断
     image_data = generate_draw_with_stable_v2(agent_reply, save_path)
     return image_data
 
