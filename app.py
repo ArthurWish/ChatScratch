@@ -107,9 +107,11 @@ def generate():
         print("agent: ", agent_reply)
         if '\n' not in agent_reply:
             raise f"ERROR! Please check {agent_reply}"
+        
         reply_splited = split_to_parts(agent_reply)
         if len(reply_splited) != 4:
             return "the reply is not 4"
+        assert len(reply_splited) == 4
         for index, reply in enumerate(reply_splited):
             output["sound"].append(text_to_speech(
                 reply, f"{assests_path}/sound-{index}"))
@@ -136,7 +138,7 @@ def generate_task():
     question = request.form.get("quesiton")
     try:
         blob = request.files['audio']  # 获取上传的音频文件对象
-        blob.save(f'static/code-question-{id}.webm')
+        blob.save(f'static/code-que stion-{id}.webm')
         audio_file = open(f'static/code-question-{id}.webm', 'rb')
         transcript = openai.Audio.transcribe("whisper-1", audio_file)
         content = transcript["text"]
@@ -179,13 +181,22 @@ def generate_img_to_img():
     combined = Image.alpha_composite(bg, img)
     combined.convert('RGB').save('static/temp.png', 'PNG')
     content = story_info.get_act(act_name=id, key=askterm)
+    print(id)
+    print("content:{}".format(content))
+    print(index_id)
+    # TODO 一个角色多个语音输入（现在是一个角色一个语音输入）
     current_role = content[int(index_id)]
+    #current_role=translate_to_english(current_role)[0:-1]+' in a white room'
+    current_role=translate_to_english(current_role)
+    if askterm=="role":
+        content=rule_refine_drawing_prompt_for_role(current_role)
+    else:
+        content = rule_refine_drawing_prompt(current_role)
     print("current_role", current_role)
-    content = rule_refine_drawing_prompt(translate_to_english(current_role))
     # content = content +  ['Vivid Colors, white background']
-    # content = ['a cat, Highly detailed, Vivid Colors, white background']
+    #content = ['a cat, Highly detailed, Vivid Colors, white background']
     if content != []:
-        image_base64 = generate_image_to_image_v2(
+        image_base64 = generate_controlnet(
             prompt=content, base_image="static/temp.png")
         if askterm == "role":
             rmbg_image = rm_img_bg(image_base64)
@@ -199,7 +210,7 @@ def generate_img_to_img():
 @app.route('/save_drawings', methods=['GET', 'POST'])
 def save_drawings():
     role_list = json.loads(request.form['role'])
-    project_path = r'c:\Users\YunNong\Desktop\scratch-gui\src\lib\default-project'
+    project_path = r'E:/Project/storytelling/fronted/scratch-gui/src/lib/default-project'
     assests_path = f"static/role/"
     if os.path.exists(assests_path):
         shutil.rmtree(assests_path)
