@@ -6,7 +6,7 @@ import requests
 from block_types import *
 from dataclasses import asdict
 from typing import List
-from chat import create_chat_completion
+from chat import create_chat_completion,chat_no_memory
 import openai
 from base64 import b64decode, b64encode
 from PIL import Image
@@ -122,7 +122,6 @@ def chatgpt_refine_drawing_prompt(askterm, content):
     print("agent: ", agent_reply)
     return agent_reply
 
-
 def generate_draw(drawing_type, drawing_content, save_path):
     temp_memory = []
     if drawing_type == "role":
@@ -130,7 +129,7 @@ def generate_draw(drawing_type, drawing_content, save_path):
             "role":
             "user",
             "content":
-            f"""你是人工智能程序的提示生成器。这里有一个描述<{drawing_content}>。我给你一个模板，然后你根据提示模板生成图像提示。提示模板："[type of art], [subject or topic], by studio ghibli, makoto shinkai, by artgerm, by wlop, by greg rutkowski, Vivid Colors, white background, [colors]"，图像提示例子：Very cute children's illustration,by studio ghibli, makoto shinkai, by artgerm, by wlop, by greg rutkowski, a cat, playing, Vivid Colors, white background, soft lines and textures. Respond the prompt only, in English.
+            f"""你是人工智能程序的提示生成器。这里有一个描述<{drawing_content}>。我给你一个模板，然后你根据提示模板生成图像提示。提示模板："[type of art], [subject or topic], [style], [colors]"，图像提示例子：Very cute children's illustration,by studio ghibli, makoto shinkai, by artgerm, by wlop, by greg rutkowski, a cat, playing, Vivid Colors, white background, soft lines and textures. Respond the prompt only, in English.
         """
         })
     elif drawing_type == "background":
@@ -155,6 +154,49 @@ def generate_draw(drawing_type, drawing_content, save_path):
     #image_data = generate_image_to_image_v2(agent_reply, base_img)
     #print("star")
     return image_data
+
+# def generate_draw2(drawing_type,drawing_content,sketch_content, save_path):
+
+#     current_sketch_content=','.join(sketch_content.split(',')[0:-4])
+#     current_sketch_style=','.join(sketch_content.split(',')[-4:])
+
+#     if drawing_type == "role":    
+#         msg=[]
+#         msg.append({"role":
+#             "user",
+#             "content":
+#             f"""你是人工智能程序的提示生成器。这里有一个描述<{drawing_content},{current_sketch_content}>，你可以联想到其他哪个角色? Respond the prompt only, in English.
+#         """})    
+#         related_content = create_chat_completion(model=MODEL,
+#                                          messages=msg,
+#                                          temperature=1.2)
+#         #print(related_content)
+#     elif drawing_type == "background":
+#         msg=[]
+#         msg.append({"role":
+#             "user",
+#             "content":
+#             f"""你是人工智能程序的提示生成器。这里有一个描述<{drawing_content},{current_sketch_content}>，你可以联想到其他哪个场景？Respond the prompt only, in English.
+#         """})    
+#         related_content = create_chat_completion(model=MODEL,
+#                                          messages=msg,
+#                                          temperature=1.2)
+#         #print(related_content)                             
+        
+        
+#     else:
+#         raise "Not valid drawing type"
+#     #print(temp_memory)
+#     # agent_reply = create_chat_completion(model=MODEL,
+#     #                                      messages=temp_memory,
+#     #                                      temperature=1.2)
+#     agent_reply=related_content + current_sketch_style
+#     print("agent: ", agent_reply)
+#     # TODO 多卡推断
+#     image_data = generate_draw_with_stable_v2(agent_reply, save_path)
+#     return image_data
+
+
 
 
 def generate_image_to_image(prompt, base_image):
@@ -236,35 +278,35 @@ def rm_img_bg(image_base64):
 
 def generate_draw_with_stable_v2(prompt, save_path):
     url = "http://10.73.3.223:55233"
-    base_image=r'static/temp.png'
-    image = Image.open(base_image)
-    resized_image = image.resize((512, 512))
-    with io.BytesIO() as buffer:
-        resized_image.save(buffer, format='PNG')
-        img_base64 = base64.b64encode(buffer.getvalue()).decode('utf-8')
+    # base_image=r'static/temp.png'
+    # image = Image.open(base_image)
+    # resized_image = image.resize((512, 512))
+    # with io.BytesIO() as buffer:
+    #     resized_image.save(buffer, format='PNG')
+    #     img_base64 = base64.b64encode(buffer.getvalue()).decode('utf-8')
     payload = {
         "prompt": prompt,
         "negative_prompt": "ugly, ugly arms, ugly hands, ugly teeth, ugly nose, ugly mouth, ugly eyes, ugly ears,",
-        "steps": 25,
+        "steps": 50,
         "sampler_name": "Euler a",
         "cfg_scale": 7,
         "width":512,
         "height":512,
         "alwayson_scripts":{
-            "ControlNet":{
-                "args":[
-                    {
-                    "enabled":True,
-                    "input_image":img_base64,
-                    "control_type":"Scribble"
-                    # "module":'pidinet_scribble',
-                    # "model":'control_v11p_sd15_scribble [d4ba51ff]',
-                    # "starting_control_step":0,
-                    # "ending_control_step":1,
-                    #"guessmode":False
-                }
-                ]
-            }
+            # "ControlNet":{
+            #     "args":[
+            #         {
+            #         "enabled":False,
+            #         "input_image":img_base64,
+            #         "control_type":"Scribble"
+            #         # "module":'pidinet_scribble',
+            #         # "model":'control_v11p_sd15_scribble [d4ba51ff]',
+            #         # "starting_control_step":0,
+            #         # "ending_control_step":1,
+            #         #"guessmode":False
+            #     }
+            #     ]
+            #}
         }
     }
     response = requests.post(url=f'{url}/sdapi/v1/txt2img', json=payload)
@@ -323,7 +365,7 @@ def generate_image_to_image_v2(prompt, base_image):
 
 def generate_controlnet(prompt, base_image):
     url = "http://10.73.3.223:55233"
-    print("[image to image]starting generating image on the basis of controlnet...")
+    print("[txt to image with controlnet]starting generating image on the basis of controlnet...")
     print("[image to prompt]", prompt)
     image = Image.open(base_image)
     resized_image = image.resize((512, 512))
@@ -380,3 +422,18 @@ def encode_pil_to_base64(image):
         image.save(output_bytes,format="PNG")
         bytes_data=output_bytes.getvalue()
     return b64encode(bytes_data).decode("utf-8")
+
+def extract_from_sketch(img):
+    url = "http://10.73.3.223:55233"
+    print("[Extracting txt from image]...")
+    image = Image.open(img)
+    resized_image = image.resize((512, 512))
+    with io.BytesIO() as buffer:
+        resized_image.save(buffer, format='PNG')
+        img_base64 = base64.b64encode(buffer.getvalue()).decode('utf-8')
+    in_load = {
+        "image": img_base64,
+        "model":"clip"
+    }
+    response = requests.post(url=f'{url}/sdapi/v1/interrogate', json=in_load)
+    return response.json()['caption']

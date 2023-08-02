@@ -79,23 +79,62 @@ def generate():
     os.makedirs(assests_path, exist_ok=True)
     askterm = request.form.get('askterm')
     assert askterm == "role" or askterm == "background" or askterm == "event"
+
+    #根据当前生成图像，便于后续提取语义信息
+    if os.path.exists('image_to_image.png'):
+        current_sketch=extract_from_sketch(img='image_to_image.png')
+        current_sketch_content=','.join(current_sketch.split(',')[0:-4])
+        current_sketch_style=','.join(current_sketch.split(',')[-4:])
+        print(current_sketch)
+        has_img=True
+    else :
+        has_img=False
+
     output = {'sound': [], 'image': []}
     temp_memory = []
     # query
     content = story_info.get_act(act_name=id, key=askterm)
     print("content", content)
     print("index_id", index_id)
+
+
     # user already input
-    if len(content) >= index_id+1:
-        current_drawing = content[index_id]
-        print("current_drawing", current_drawing)
-        for index in range(4):
+    if has_img==True:#用户有图象输入
+        if len(content) >= index_id+1 :#用户由语音输入
+            current_drawing = content[index_id]
+            print("current_drawing", current_drawing)
+        else:
+            current_drawing=''
+        msg=[]
+        msg.append({"role":
+            "user",
+            "content":
+            f"""你是一个儿童故事编剧。这里有一个描述<{current_drawing},{current_sketch_content}>，请给出你根据描述联想到的4相关的角色（可以是动植物或人），不超过75字.Respond the prompt only, in English.
+        """})    
+        agent_reply = create_chat_completion(model=MODEL,
+                                         messages=msg,
+                                         temperature=0.3)
+        #print(related_content)
+        print("agent: ", agent_reply)
+        if '\n' not in agent_reply:
+            raise f"ERROR! Please check {agent_reply}"
+        
+        reply_splited = split_to_parts(agent_reply)
+        if len(reply_splited) != 4:
+            return "the reply is not 4"
+        assert len(reply_splited) == 4
+        for index, reply in enumerate(reply_splited):
             output["sound"].append(text_to_speech(
                 current_drawing, f"{assests_path}/sound-{index}"))
+            prompt="very cute illustration for a children's Scratch project,"+reply+current_sketch_style
+            print(prompt)
             output["image"].append(
-                generate_draw(drawing_type=askterm,
-                              drawing_content=current_drawing,
-                              save_path=f'{assests_path}/image-{index}'))
+                generate_draw_with_stable_v2(prompt= prompt,
+                                             save_path=f'{assests_path}/image-{index}'))
+                # generate_draw(drawing_type=askterm,
+                #               drawing_content=reply+current_sketch_style,
+                #               save_path=f'{assests_path}/image-{index}'))
+
     # user not input
     elif len(content) < index_id+1:
         prompt = story_info.get_prompt(id, askterm)
@@ -118,6 +157,7 @@ def generate():
             output["image"].append(
                 generate_draw(drawing_type=askterm,
                               drawing_content=reply,
+                              drawing_style=current_sketch_style,
                               save_path=f'{assests_path}/image-{index}'))
     else:
         content = content[0]

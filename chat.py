@@ -7,9 +7,11 @@ import os
 from dataclasses import dataclass
 from base64 import b64decode
 import configparser
-
-os.environ["HTTP_PROXY"] = "http://127.0.0.1:7890"
-os.environ["HTTPS_PROXY"] = "http://127.0.0.1:7890"
+#7890
+#os.environ["HTTP_PROXY"] = "http://127.0.0.1:53635"
+#os.environ["HTTPS_PROXY"] = "http://127.0.0.1:53635"
+os.environ.pop("HTTP_PROXY", None)
+os.environ.pop("HTTPS_PROXY", None)
 
 mem_dict = {}
 agents = {}
@@ -332,6 +334,8 @@ Text: <{text}>
         "test1",
         f"你是一个Scratch编程老师。请用Scratch中的代码块类别（运动、外观、声音、事件、控制、侦测、运算、变量）给儿童提供编程建议。我给你一些模板：问：如何通过键盘实现角色的移动\n答：建议使用运动、侦测和控制类别来实现\n问：小兔子如何奔跑答：建议使用运动类别中的\"以一定速度移\"和\"以一定角度转动\"代码块，通过侦测类别中的\"当某个键按下\"来控制小兔子的奔跑。\n问：小兔子和小乌龟如何对话\n答：建议使用事件类别中的\"当收到信息\"和\"发送信息\"，以及控制类别中的\"等待\"和\"重复\"代码块来实现小兔子和小乌龟之间的对话。下面我会问你问题，你要按照模板来回答。"
     )
+    
+
     while True:
         inputa = input("Input:\n")
         chat_with_agent("test1", inputa)
