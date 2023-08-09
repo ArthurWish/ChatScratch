@@ -1,6 +1,16 @@
 from dataclasses import dataclass
 
-
+@dataclass
+class Blocks:
+    motion: str = "scratchCategoryId-motion"
+    looks: str = "scratchCategoryId-looks"
+    sound: str = "scratchCategoryId-sound"
+    events: str = "scratchCategoryId-events"
+    control: str = "scratchCategoryId-control"
+    sensing: str = "scratchCategoryId-sensing"
+    operators: str = "scratchCategoryId-operators"
+    variabels: str = "scratchCategoryId-variabels"
+    
 @dataclass
 class LooksBlocks:
     looks_sayforsecs: str = "looks_sayforsecs"

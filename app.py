@@ -249,11 +249,16 @@ def generate_code():
 
     # test
     # content = '如何实现角色翻转'
-    content = generate_code_step(content)
-    step1, step2 = extract_step(content)
+    step1, step2 = generate_code_step(content)
+    # step1, step2 = extract_step(content)
+    print(step1)
+    extracted_step1 = chatgpt_extract_step1(step1)
+    print("extracted_step1", extracted_step1)
+    
     # step1
-    with open(f"static/codes/agent_reply-{id}.txt", "w", encoding='utf-8') as f:
-        f.write(step1)
+    with open(f"static/codes/agent_reply-{id}.json", "w", encoding='utf-8') as f:
+        json.dump(extracted_step1, f)
+        # f.write(extracted_step1)
     audio_base64 = text_to_speech(step1, f"static/codes/agent-reply-{id}.mp3")
     # f.write(step2)
     # step2

@@ -125,11 +125,11 @@ def text_to_speech(text, save_path):
                       headers=header,
                       data=json.dumps(request_data),
                       stream=True)
-    '''
+    
     if str(r.content).find("Error") != -1 :
         print(r.content)
         return
-    '''
+    
     i = 1
     wavfile = wave.open(save_path, 'wb')
     wavfile.setparams((1, 2, 16000, 0, 'NONE', 'NONE'))
@@ -146,4 +146,4 @@ def text_to_speech(text, save_path):
     return audio_base64
 
 
-# text_to_speech("我是一个小猪")
+# text_to_speech("我是一个小猪", "test.mp3")
