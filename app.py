@@ -181,11 +181,19 @@ def generate_img_to_img():
     content = story_info.get_act(act_name=id, key=askterm)
     current_role = content[int(index_id)]
     print("current_role", current_role)
-    content = rule_refine_drawing_prompt(translate_to_english(current_role))
+    
+    current_role=translate_to_english(current_role)
+    if askterm=="role":
+        content=rule_refine_drawing_prompt_for_role(current_role)
+    else:
+        content = rule_refine_drawing_prompt(current_role)
+   
+    # content = rule_refine_drawing_prompt(translate_to_english(current_role))
     # content = content +  ['Vivid Colors, white background']
     # content = ['a cat, Highly detailed, Vivid Colors, white background']
     if content != []:
-        image_base64 = generate_image_to_image_v2(
+        # image_base64 = generate_image_to_image_v2(
+        image_base64 = generate_controlnet(
             prompt=content, base_image="static/temp.png")
         if askterm == "role":
             # rmbg_image = rm_img_bg(image_base64)
