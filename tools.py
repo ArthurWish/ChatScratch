@@ -233,7 +233,7 @@ def translate_to_english(content):
         "role":
         "user",
         "content":
-        f"""将我给定的文本翻译为英文，只回答结果：{content}
+        f"""将{content}翻译为英文，只回答结果, in English:{content}
     """
     })
     # print(temp_memory)
@@ -241,6 +241,19 @@ def translate_to_english(content):
                                   messages=temp_memory,
                                   temperature=0)
 
+def translate_to_chinese(content):
+    temp_memory = []
+    temp_memory.append({
+        "role":
+        "user",
+        "content":
+        f"""将英文描述{content}翻译为中文。并简单概括，只回答结果, 用中文:{content}
+    """
+    })
+    # print(temp_memory)
+    return create_chat_completion(model=MODEL,
+                                  messages=temp_memory,
+                                  temperature=0)
 
 def test():
     string = '1. 小明：一个勇敢的男孩，喜欢探险和冒险。他在森林里迷路了，正在寻找回家的路。\n2. 小芳：一个聪明的女孩，喜欢读书和学习。她在图书馆里发现了一本神秘的书，决定破解其中的谜题。\n3. 小华：一个善良的男孩，喜欢帮助别人。他在街上看到一个老奶奶摔倒了，决定去帮助她。\n4. 小玲：一个有想象力的女孩，喜欢画画和创作。她在花园里发现了一只神奇的小鸟，决定和它成为朋友。'

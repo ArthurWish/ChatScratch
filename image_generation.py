@@ -82,7 +82,7 @@ def generate_draw_with_stable(prompt, save_path):
 
 def rule_refine_drawing_prompt_for_role(content):
     content=content[0:-1]
-    return f"very cute illustration for a children's Scratch project, {content} in a white house , by Katie Risor,Cartoonish Illustration Style,Acrylic, 4k"
+    return f"very cute illustration for a children's Scratch project, {content} with a transparent background, by Katie Risor,Cartoonish Illustration Style,Acrylic, 4k"
 
 def rule_refine_drawing_prompt(content):
     """
@@ -126,7 +126,7 @@ def generate_draw(drawing_type, drawing_content, save_path):
             "role":
             "user",
             "content":
-            f"""你是人工智能程序的提示生成器。这里有一个描述<{drawing_content}>。我给你一个模板，然后你根据提示模板生成图像提示。提示模板："[type of art], [subject or topic], by studio ghibli, makoto shinkai, by artgerm, by wlop, by greg rutkowski, Vivid Colors, white background, [colors]"，图像提示例子：Very cute children's illustration,by studio ghibli, makoto shinkai, by artgerm, by wlop, by greg rutkowski, a cat, playing, Vivid Colors, white background, soft lines and textures. Respond the prompt only, in English.
+            f"""你是人工智能程序的提示生成器。这里有一个描述<{drawing_content}>。我给你一个模板，然后你根据提示模板生成图像提示。提示模板："[type of art], [subject or topic], [style], [colors]"，图像提示例子：Very cute children's illustration,by studio ghibli, makoto shinkai, by artgerm, by wlop, by greg rutkowski, a cat, playing, Vivid Colors, white background, soft lines and textures. Respond the prompt only, in English.
         """
         })
     elif drawing_type == "background":
@@ -236,10 +236,11 @@ def rm_img_bg(image_base64):
 
 def generate_draw_with_stable_v2(prompt, save_path):
     url = "http://10.73.3.223:55233"
+   
     payload = {
         "prompt": prompt,
         "negative_prompt": "ugly, ugly arms, ugly hands, ugly teeth, ugly nose, ugly mouth, ugly eyes, ugly ears,",
-        "steps": 25,
+        "steps": 50,
         "sampler_name": "Euler a",
         "cfg_scale": 7,
         "width":512,
@@ -306,6 +307,7 @@ def generate_image_to_image_v2(prompt, base_image):
 def generate_controlnet(prompt, base_image):
     url = "http://10.73.3.223:55233"
     print("[image to image]starting generating image on the basis of controlnet...")
+    print("[txt to image with controlnet]starting generating image on the basis of controlnet...")
     print("[image to prompt]", prompt)
     image = Image.open(base_image)
     resized_image = image.resize((512, 512))
@@ -351,3 +353,20 @@ def generate_controlnet(prompt, base_image):
     image.save("image_to_image.png",format='PNG')
 
     return data['images'][0]
+
+
+
+def extract_from_sketch(img):
+    url = "http://10.73.3.223:55233"
+    print("[Extracting txt from image]...")
+    image = Image.open(img)
+    resized_image = image.resize((512, 512))
+    with io.BytesIO() as buffer:
+        resized_image.save(buffer, format='PNG')
+        img_base64 = base64.b64encode(buffer.getvalue()).decode('utf-8')
+    in_load = {
+        "image": img_base64,
+        "model":"clip"
+    }
+    response = requests.post(url=f'{url}/sdapi/v1/interrogate', json=in_load)
+    return response.json()['caption']

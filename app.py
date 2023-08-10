@@ -71,8 +71,26 @@ def get_audio():
 @app.route('/generate', methods=['GET', 'POST'])
 def generate():
     """return images and sounds"""
-    id = request.form.get('id') # part id
-    index_id = request.form.get('index_id') # current part, which image
+    draft_url = request.form.get("draft_url")
+    if draft_url!='placeholder':
+        base_img = request.form.get("draft_url").split(',')[1]  # base64
+        base_img_bytes = base64.b64decode(base_img)
+        img = Image.open(io.BytesIO(base_img_bytes)).convert('RGBA')
+        bg = Image.new('RGBA', img.size, (255, 255, 255))
+        # TODO 角色背景分开
+        # 在背景上粘贴原图像（使用原图像作为遮罩以保留其透明度）
+        combined = Image.alpha_composite(bg, img)
+        combined.convert('RGB').save('static/base_draft.png', 'PNG')
+        current_sketch=extract_from_sketch(img='static/base_draft.png')
+        current_sketch_content=','.join(current_sketch.split(',')[0:-4])
+        current_sketch_style=','.join(current_sketch.split(',')[-4:])
+        print(current_sketch)
+        has_img=True
+    else:
+        has_img=False
+        
+    id = request.form.get('id') # part id   第一幕第二幕第三幕
+    index_id = request.form.get('index_id') # current part, which image 
     index_id = int(index_id)
     assert id == "1" or id == "2" or id == "3"
     assests_path = f"static/{id}"
@@ -83,21 +101,48 @@ def generate():
     temp_memory = []
     # query
     content = story_info.get_act(act_name=id, key=askterm)
-    print("content", content)
-    print("index_id", index_id)
+    print("content", content)   #当前类别内的描述
+    print("index_id", index_id)  
     # user already input
-    if len(content) >= index_id+1:
-        current_drawing = content[index_id]
-        print("current_drawing", current_drawing)
-        for index in range(4):
+    if has_img==True:  # 存在草图
+        if len(content) >= index_id+1: #存在语音输入的定义，结合两者给出灵感
+            current_drawing = content[index_id]
+            print("current_drawing", current_drawing)
+        else:
+            current_drawing=''
+        print(current_drawing)
+        msg=[]
+        msg.append({"role":
+            "user",
+            "content":
+            f"""你是一个儿童故事编剧。这里有一个描述<{current_drawing},{current_sketch_content}>，请给出你根据描述联想的4个相关的{askterm}，不超过75字.Respond the prompt only, in English.
+        """})    
+        agent_reply = create_chat_completion(model=MODEL,
+                                         messages=msg,
+                                         temperature=0.3)
+        #print(related_content)
+        print("agent: ", agent_reply)
+        if '\n' not in agent_reply:
+            raise f"ERROR! Please check {agent_reply}"
+        reply_splited = split_to_parts(agent_reply)
+        if len(reply_splited) != 4:
+            return "the reply is not 4"
+        assert len(reply_splited) == 4
+        for index, reply in enumerate(reply_splited):    
+            
             output["sound"].append(text_to_speech(
-                current_drawing, f"{assests_path}/sound-{index}"))
+                translate_to_chinese(reply), f"{assests_path}/sound-{index}"))
+            prompt="very cute illustration for a children's Scratch project,"+reply+current_sketch_style
+            print(prompt)
             output["image"].append(
-                generate_draw(drawing_type=askterm,
-                              drawing_content=current_drawing,
-                              save_path=f'{assests_path}/image-{index}'))
+                generate_draw_with_stable_v2(prompt= prompt,
+                                             save_path=f'{assests_path}/image-{index}'))
+            
+                # generate_draw(drawing_type=askterm,
+                #               drawing_content=current_drawing,
+                #               save_path=f'{assests_path}/image-{index}'))
     # user not input
-    elif len(content) < index_id+1:
+    elif len(content) < index_id+1:   #没有草图，也没有相关描述
         prompt = story_info.get_prompt(id, askterm)
         print("story_info.get_prompt:\n", prompt)
         temp_memory.append(prompt)
@@ -110,6 +155,7 @@ def generate():
         reply_splited = split_to_parts(agent_reply)
         if len(reply_splited) != 4:
             return "the reply is not 4"
+        assert len(reply_splited) == 4
         for index, reply in enumerate(reply_splited):
             output["sound"].append(text_to_speech(
                 reply, f"{assests_path}/sound-{index}"))
@@ -183,6 +229,7 @@ def generate_img_to_img():
     print("current_role", current_role)
     
     current_role=translate_to_english(current_role)
+    print("current_role", current_role)
     if askterm=="role":
         content=rule_refine_drawing_prompt_for_role(current_role)
     else:
