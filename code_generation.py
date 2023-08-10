@@ -242,7 +242,7 @@ def chatgpt_extract_step1(text):
 
 # def test2():
 
-generate_code_step("使用键盘控制角色移动")
+# generate_code_step("使用键盘控制角色移动")
 # test()
 # main()
 # print("r1", r1, "\nr2", r2)

@@ -15,6 +15,8 @@ import hashlib
 from wand.image import Image as wImage
 import xml.etree.ElementTree as ET
 from io import BytesIO
+from rembg import remove
+
 MODEL = "gpt-3.5-turbo"
 
 
@@ -194,6 +196,15 @@ def generate_draw_with_dalle(prompt, save_path):
             png.write(b64decode(image_dict["b64_json"]))
     return image_data_return
 
+def rm_img_bg_local(in_path, out_path):
+    with open(in_path, 'rb') as i:
+        with open(out_path, 'wb') as o:
+            input = i.read()
+            output = remove(input)
+            o.write(output)
+    with open(out_path, 'rb') as o:
+        encoded_data = base64.b64encode(o.read())
+        return encoded_data.decode('utf-8') 
 
 def rm_img_bg(image_base64):
     response = requests.post(

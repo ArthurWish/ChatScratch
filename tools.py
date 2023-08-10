@@ -1,4 +1,6 @@
 import Levenshtein as lv
+from sympy import im
+from zipp import Path
 from block_types import *
 from chat import create_chat_completion
 import os
@@ -40,7 +42,7 @@ def split_to_parts(reply: str):
 
 
 def toSVG(infile, outpath, temppath):
-    with wImage(filename=infile) as img:
+     with wImage(filename=infile) as img:
         img.format = 'svg'
         hash_object = hashlib.md5(img.make_blob())
         hex_dig = hash_object.hexdigest()
@@ -66,7 +68,7 @@ def generate_js():
     backdrop_files = os.listdir('static/scene')
     costume_files = os.listdir('static/role')
 
-    with open(r'c:\Users\YunNong\Desktop\scratch-gui\src\lib\default-project/index.js', 'w') as f:
+    with open("/media/sda1/cyn-workspace/scratch-gui/src/lib/default-project/index.js", 'w') as f:
         f.write('import projectData from \'./project-data\';\n')
         for i, file in enumerate(backdrop_files):
             f.write('import backdrop' + str(i + 1) +
@@ -114,7 +116,7 @@ def generate_js_project():
     backdrop_files = os.listdir('static/scene')
     costume_files = os.listdir('static/role')
 
-    with open(r'c:\Users\YunNong\Desktop\scratch-gui\src\lib\default-project\project-data.js', 'w') as f:
+    with open("/media/sda1/cyn-workspace/scratch-gui/src/lib/default-project/project-data.js", 'w') as f:
         f.write('import {defineMessages} from \'react-intl\';\n')
         f.write('import sharedMessages from \'../shared-messages\';\n\n')
         f.write('let messages = defineMessages({\n')
@@ -249,6 +251,7 @@ def test():
 
 
 if __name__ == "__main__":
+    # toSVG("/media/sda1/cyn-workspace/Scratch-project/ScratchGPT/static/temp.png", outpath="./", temppath="./")
     # test generate image and remove background
     # import requests
     # from io import BytesIO

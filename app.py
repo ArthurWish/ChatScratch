@@ -188,7 +188,8 @@ def generate_img_to_img():
         image_base64 = generate_image_to_image_v2(
             prompt=content, base_image="static/temp.png")
         if askterm == "role":
-            rmbg_image = rm_img_bg(image_base64)
+            # rmbg_image = rm_img_bg(image_base64)
+            rmbg_image = rm_img_bg_local("image_to_image.png", "rmbg_image.png")
             return jsonify({'status': 'success', 'url': rmbg_image})
         else:
             return jsonify({'status': 'success', 'url': image_base64})
@@ -199,8 +200,8 @@ def generate_img_to_img():
 @app.route('/save_drawings', methods=['GET', 'POST'])
 def save_drawings():
     role_list = json.loads(request.form['role'])
-    project_path = r'c:\Users\YunNong\Desktop\scratch-gui\src\lib\default-project'
-    assests_path = f"static/role/"
+    project_path = "/media/sda1/cyn-workspace/scratch-gui/src/lib/default-project"
+    assests_path = f"/media/sda1/cyn-workspace/Scratch-project/ScratchGPT/static/role"
     if os.path.exists(assests_path):
         shutil.rmtree(assests_path)
     os.makedirs(assests_path, exist_ok=True)
@@ -218,7 +219,7 @@ def save_drawings():
 
     # 处理scene_list
     scene_list = json.loads(request.form['scene'])
-    assests_path = f"static/scene/"
+    assests_path = f"/media/sda1/cyn-workspace/Scratch-project/ScratchGPT/static/scene/"
     if os.path.exists(assests_path):
         shutil.rmtree(assests_path)
     os.makedirs(assests_path, exist_ok=True)
@@ -298,4 +299,4 @@ def generate_code():
 
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    app.run(host='0.0.0.0', port=5500, debug=False)
