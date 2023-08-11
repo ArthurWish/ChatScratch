@@ -19,18 +19,14 @@ PROMPT = """
 {"prompt":"按下空格，改变角色姿势 ->","completion":" \"when [space] key pressed\",\"switch costume to [max-c]\",\"wait [0.3] seconds\",\"switch costume to [max-b]\"\n"}
 {"prompt":"点击绿旗，实现角色跑步动画 ->","completion":" \"when green flag clicked\",\"go to x:[-140],y:[-60]\",\"repeat [50]\",\"move [10] steps\",\"next costume\"\n"}
 {"prompt":"点击绿旗，使两个角色对话 ->","completion":" \"when green flag clicked\",\"say [I have a pet owl!] for [2] seconds\",\"wait [2] seconds\",\"when green flag clicked\",\"wait [2] seconds\",\"say [What's its name] for [2] seconds\"\n"}
-{"prompt":"点击绿旗，改变背景 ->","completion":" \"when green flag clicked\",\"switch backdrop to []\",\"wait [4] seconds\",\"switch backdrop to []\"\n"}
 {"prompt":"点击角色，改变颜色，播放声音 ->","completion":" “when this sprite clicked\",\"change [color] effect by [25]\",\"play sound [Magic Spell]\n"}
 {"prompt":"点击绿旗，播放声音，使角色说话 ->","completion":" \"when green flag clicked\",\"start sound [recording1]\",\"say [let's go] for [2] seconds\"\n"}
 {"prompt":"点击绿旗，使角色滑行 ->","completion":" “when green flag clicked\",\"go to x: [-180] y: [140]\",\"glide [1] secs to x: [-30] y: [50]\"\n"}
 {"prompt":"点击绿旗，使角色走进舞台 ->","completion":" “when green flag clicked\",“hide\",\"go to x: [-240] y: [-60]\",\"show\",\"glide [2] secs to x: [0] y: [-60]\"\n"}
-{"prompt":"点击绿旗，使角色说话 ->","completion":" “when green flag clicked\",“say [where are you going?] for [2] seconds\",\"broadcast [message1]\"\n"}
 {"prompt":"角色收到信息，回复 ->","completion":" \"when i receive [message1]\",\"say [To the forest!] for [2] seconds\"\n"}
 {"prompt":"点击绿旗，改变背景 ->","completion":" “when green flag clicked\",\"switch backdrop to [Witch House]\",\"hide\",\"wait [4] seconds\",\"switch backdrop to [Mountain]\" \n"}
 {"prompt":"改变背景，使角色移动 ->","completion":" “when backdrop switches to [Mountain]\",\"go to x: [80] y: [-100]\",\"show\"\n"}
-{"prompt":"点击绿旗，标线移到舞台底部，游戏结束 ->","completion":" “when green flag clicked\",\"go to x: [0] y: [-170]\",\"forever\",\"if touching [Ball] ? then\",\"stop [all]\"\n"}
 {"prompt":"点击绿旗，使角色跳舞 ->","completion":" “when green flag clicked\",“switch costume to [Ten80 top R step]\",\"wait [0.3] seconds\",“switch costume to [Ten80 top L step]\",\"wait [0.3] seconds\",“switch costume to [Ten80 top freeze]\",\"wait [0.3] seconds\",“switch costume to [Ten80 top R cross]\",\"wait [0.3] seconds\"\n"}
-{"prompt":"点击绿旗，使角色循环舞蹈动作 ->","completion":" “when green flag clicked\",“switch costume to [Ten80 stance]\",\"wait [1] seconds\",\"repeat [4]\",“switch costume to [Ten80 top R step]\",\"wait [0.3] seconds\",“switch costume to [Ten80 top L step]\",\"wait [0.3] seconds\",“switch costume to [Ten80 top freeze]\",\"wait [0.3] seconds\",“switch costume to [Ten80 top R cross]\",\"wait [0.3] seconds\"\n"}
 {"prompt":"点击绿旗，重复播放音乐 ->","completion":" “when green flag clicked\",“repeat [10]\",\"play sound [Dance Celebrate] until done\"\n"}
 {"prompt":"点击绿旗，跳舞完成后说话 ->","completion":" “when green flag clicked\",“switch costume to [anina top L step]\",\"wait [0.3] seconds\",“switch costume to [anina top R step]\",\"wait [0.3] seconds\",“switch costume to [anina stance]\",\"broadcast [message1]\"\n"}
 {"prompt":"角色收到信息，回复并跳舞 ->","completion":" \"when i receive [message1]\",\"say [My turn to dance!] for [1] seconds\",\"repeat [4]\",\"next costume\",\"wait [0.3] seconds\"\n"}
@@ -38,19 +34,15 @@ PROMPT = """
 {"prompt":"点击绿旗，角色变成阴影效果 ->","completion":" “when green flag clicked\",“set [brightness] effect to [-100]\",\"forever\",\"next costume\",\"wait [0.3] seconds\"\n"}
 {"prompt":"点击箭头按钮，改变角色动作 ->","completion":" “when [left arrow] key pressed\",\"switch costume to [jo pop left]\"\n"}
 {"prompt":"点击箭头按钮，改变角色动作 ->","completion":" “when [down arrow] key pressed\",\"switch costume to [jo pop down]\"\n"}
-{"prompt":"点击绿旗，改变颜色 ->","completion":" “when green flag clicked\",\"forever\",\"change [color] effect by [25]\",\"wait [0.3] seconds\"\n"}
 {"prompt":"点击空格键，使角色跳跃 ->","completion":" “when [space] key pressed\",\"repeat [10]\",\"change y by [10]\",“repeat [10]\",\"change y by [-10]\"\n"}
 {"prompt":"点击绿旗，移动障碍物 ->","completion":" “when green flag clicked\",“forever”，\"go to x: [240] y: [-145]\"，“glide [3] secs to x: [-240] y: [-145]\"\n"}
 {"prompt":"点击绿旗，使角色说话 ->","completion":" “when green flag clicked\",\"go to x: [-50] y: [60]\",\"say [My name is Kiki!] for [2] seconds\"\n"}
 {"prompt":"点击角色，播放音效，使角色动起来 ->","completion":" “when [space] key pressed\",“start sound [Chirp]\",\"repeat [4]\",“switch costume to [monkey-a]\",\"wait [0.2] seconds\",“switch costume to [monkey-b]\",\"wait [0.2] seconds\"\n"}
-{"prompt":"点击角色，发出信息 ->","completion":" “when the sprite clicked\",\"go to [front] layer\",\"broadcast [food]\"\n"}
 {"prompt":"点击角色，改变状态 ->","completion":" “when the sprite clicked\",\"go to [front] layer\",\"broadcast [drink]\",\"wait [1] seconds\",\"switch costume to [glass water-b]\",start sound [Water Drop]\",\"wait [1] seconds\",\"switch costume to [glass water-a]\"\n"}
 {"prompt":"角色收到信息，进行喂水，回到原位 ->","completion":" \"when i receive [drink]\",“glide [1] secs to [Glass water]\",\"wait [1] seconds\",“glide [1] secs to x: [-50] y: [60]\"\n"}
 {"prompt":"点击角色，根据不同选择，回复消息 ->","completion":" “when the sprite clicked\",\"set [Choice] to pick random (1) to (3)\",\"if (choice) = (1) then\",\"say [I like bananas!] for [2] seconds\",\"if (choice) = (2) then\",\"say [That tickles!] for [2] seconds\",\"if (choice) = (3) then\",\"say [Let's play!] for [2] seconds\"\n"}
 {"prompt":"点击小球，播放音乐，并跳动 ->","completion":" “when the sprite clicked\",\"go to [front] layer\",\"broadcast [play]\",\"wait until touching [Monkey] ?\",\"start sound [Boing]\",\"repeat [10]\",\"change by [-5]\",\"repeat [10]\",\"change by [5]\"\n"}
-{"prompt":"角色收到信息，进行玩耍，回到原位 ->","completion":" \"when i receive [play]\",“glide [1] secs to [Ball]\",\"wait [1] seconds\",“glide [1] secs to x: [-50] y: [60]\"\n"}
 {"prompt":"点击绿旗，让角色到舞台顶端 ->","completion":" “when green flag clicked\",“go to [random position]\",\"set y to [180]\"\n"}
-{"prompt":"点击绿旗，累计分数 ->","completion":" “when green flag clicked\",“set [Score] to [0]\",“forever”,\"if touching [Bowl] ? then\",\"play sound [pop] until done\",\"change [Score] by [1]\",\"go to [random position]\",\"set y to [180]\"\n"}
 """
 
 MODEL = "gpt-3.5-turbo"
@@ -62,7 +54,7 @@ def chatgpt_extract_code(text):
         "role":
         "user",
         "content":
-        f"""提取<文本>中包含的code：<{text}>，并以json形式输出，其中包含以下key:code"""
+        f"""提取<文本>中包含的code：<{text}>，并以json形式输出，其中包含一个键:code"""
     })
     agent_reply = create_chat_completion(model=MODEL,
                                          messages=code_agent,
@@ -139,28 +131,36 @@ def cal_similarity(reply_list, blocks):
     return block_list
 
 
-def generate_code_step(content):
+def generate_code_step(content, steps):
     '''
     使用哪些模块（Motion,Looks,Sound,Events,Control,Sensing,Operators,Variables）
     运动、外观、声音、事件、控制、侦测、运算、变量
     '''
     code_agent = []
-    code_agent.append({
-        "role":
-        "user",
-        "content":
-        f"""你是一个专业的Scratch编程老师。分两步解释：
-        step1:根据{content}在(Looks,Sound,Events,Control,Sensing,Operators,Variables)内选择合适的Scratch代码块类别,
-        step2:使用Scratch生成代码块，尖括号内的代码是给你的参考：<{PROMPT}>。根据{content}补充completion。最终的输出是json形式，其中包含以下key:step1,step2"""
-    })
+    if steps == "step1":
+        
+        code_agent.append({
+            "role":
+            "user",
+            "content":
+            f"""我有一个问题:{content},从这些选项里面选择若干个相关的：Motion,Looks,Sound,Events,Control,Sensing,Operators,Variables，不要额外的解释"""
+        })
+    elif steps == "step2":
+        
+        code_agent.append({
+            "role":
+            "user",
+            "content":
+            f"""使用Scratch3.0中的代码块，按照尖括号内的代码的风格：<{PROMPT}>。回答问题，请补充completion["prompt":{content} ->,"completion":]"""
+        })
     agent_reply = create_chat_completion(model=MODEL,
                                          messages=code_agent,
-                                         temperature=0.3)
-    print(agent_reply)
+                                         temperature=0)
+    # print(agent_reply)
     # TODO 修改prompt使生成更可控
-    content = json.loads(agent_reply)
-    step1, step2 = content["step1"], content["step2"]
-    return step1, step2
+    # content = json.loads(agent_reply)
+    # step1, step2 = content["step1"], content["step2"]
+    return agent_reply
     # if isinstance(agent_reply, list):
     #     return ["scratchCategoryId-"+reply.lower() for reply in agent_reply]
     # elif isinstance(agent_reply, str):
@@ -197,7 +197,7 @@ def chatgpt_extract_step1(text):
         "role":
         "user",
         "content":
-        f"""提取<文本>中包含的模块类别：<{text}>，并以json形式输出，其中包含以下key:type"""
+        f"""模块类别：Looks,Sound,Events,Control,Sensing,Operators,Variables，你的工作是提取<{text}>中包含的模块类别，并以json格式输出，包含一个键:type"""
     })
     agent_reply = create_chat_completion(model=MODEL,
                                          messages=code_agent,

@@ -1,4 +1,5 @@
 import base64
+from urllib import response
 from flask import Flask, Response, jsonify, redirect, request, send_file, send_from_directory, render_template
 from speech import speech_to_text, text_to_speech
 import os
@@ -56,6 +57,7 @@ def get_audio():
     """ transform audio to text and add story info"""
     blob = request.files['file']
     act = request.form.get('act')
+    print("act", act)
     assert act == "1" or act == "2" or act == "3" or act == "4"
     type = request.form.get('type')
     assert type == "role" or type == "background" or type == "event" or type == "code"
@@ -298,16 +300,19 @@ def generate_code():
     os.makedirs('static/codes', exist_ok=True)
     id = request.form.get("id")
     audio_blob = request.files['file']
+    print(id, audio_blob)
     audio_blob.save(f'static/codes/code-question-{id}.webm')
     audio_file = open(f'static/codes/code-question-{id}.webm', 'rb')
     transript = openai.Audio.transcribe("whisper-1", audio_file)
     content = transript["text"]
-
+    print(content)
     # test
-    # content = '如何实现角色翻转'
-    step1, step2 = generate_code_step(content)
+    # content = '一个男孩打篮球'
+    step1 = generate_code_step(content, "step1")
+    step2 = generate_code_step(content, "step2")
     # step1, step2 = extract_step(content)
-    print(step1)
+    print("step1", step1)
+    print("step2", step2)
     extracted_step1 = chatgpt_extract_step1(step1)
     print("extracted_step1", extracted_step1)
     
@@ -354,4 +359,12 @@ def generate_code():
 
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5500, debug=False)
+    # text_to_speech("第一幕", f"第一幕.mp3")
+    # text_to_speech("第二幕", f"第二幕.mp3")
+    # text_to_speech("第三幕", f"第三幕.mp3")
+    app.run(host='0.0.0.0', port=5500, debug=True)
+    # extracted_reply = ['event_whenflagclicked', 'switchcostumeto', 'control_wait', 'switchcostumeto', 'control_wait', 'switchcostumeto', 'control_wait', 'switchcostumeto', 'control_wait']
+    # block_list = cal_similarity(extracted_reply, ass_block)
+    # block_list = [block for block in block_list if block]
+    # print(block_list)
+    
