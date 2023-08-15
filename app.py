@@ -12,12 +12,15 @@ from PIL import Image
 import shutil
 from code_generation import *
 from image_generation import *
+
 app = Flask(__name__)
 CORS(app)
 
-os.makedirs("static", exist_ok=True)
-os.makedirs("static/codes", exist_ok=True)
-MODEL = "gpt-3.5-turbo"
+os.makedirs("./static", exist_ok=True)
+os.makedirs("./static/codes", exist_ok=True)
+
+# MODEL = "gpt-3.5-turbo"
+MODEL = "gpt-4-0613"
 
 story_info = StoryInfo()
 
@@ -257,6 +260,7 @@ def generate_img_to_img():
 @app.route('/save_drawings', methods=['GET', 'POST'])
 def save_drawings():
     role_list = json.loads(request.form['role'])
+    print(role_list)
     project_path = "/media/sda1/cyn-workspace/scratch-gui/src/lib/default-project"
     assests_path = f"/media/sda1/cyn-workspace/Scratch-project/ScratchGPT/static/role"
     if os.path.exists(assests_path):
@@ -271,8 +275,8 @@ def save_drawings():
         with open(png_path, "wb") as f:
             f.write(b64decode(img))
         toSVG(png_path, project_path, assests_path)
-
-        os.remove(png_path)  # 删除原始PNG图片
+        if os.path.exists(png_path):
+            os.remove(png_path)  # 删除原始PNG图片
 
     # 处理scene_list
     scene_list = json.loads(request.form['scene'])
@@ -307,7 +311,7 @@ def generate_code():
     content = transript["text"]
     print(content)
     # test
-    # content = '一个男孩打篮球'
+    # content = '点击绿旗，让角色A移动到边缘，并切换角色'
     step1 = generate_code_step(content, "step1")
     step2 = generate_code_step(content, "step2")
     # step1, step2 = extract_step(content)
@@ -327,22 +331,6 @@ def generate_code():
     block_list = cal_similarity(extracted_reply, ass_block)
     block_list = [block for block in block_list if block]
     print(block_list)
-
-    # refine_agent = []
-    # refine_agent.append({
-    #     "role":
-    #     "user",
-    #     "content":
-    #     f"""帮助我提取这段文本的信息，分点，需要精简文本，不要显示原文本：{agent_reply}
-    #     """
-    # })
-    # refine_reply = create_chat_completion(model=MODEL,
-    #                                       messages=refine_agent,
-    #                                       temperature=0)
-    # print("agent: ", refine_reply)
-    # audio_base64 = text_to_speech(
-    #     refine_reply, f"static/codes/agent-reply-{id}.mp3")
-
     output_json = 'static/codes/block_suggestion.json'
     data = {}
     if os.path.exists(output_json):

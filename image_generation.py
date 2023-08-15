@@ -88,7 +88,7 @@ def rule_refine_drawing_prompt(content):
     """
     very cute illustration for a children's Scratch project, A runnnig bear, Bold and Bright Illustration Styles, Digital Painting, by Pixar style, no background objects
     """
-    return f"very cute illustration for a children's Scratch project, {content}, by studio ghibli, makoto shinkai, by artgerm, by wlop, by greg rutkowski, Watercolor Painting, 4k"
+    return f"landscape painting, {content}, no character in the picture,  by studio ghibli, makoto shinkai, by artgerm, by wlop, by greg rutkowski, Watercolor Painting, 4k"
 
 
 def chatgpt_refine_drawing_prompt(askterm, content):
