@@ -5,7 +5,7 @@ from dataclasses import asdict
 from block_types import *
 import re
 from chat import create_chat_completion
-
+from tools import MODEL
 PROMPT2 = """
 {"prompt":"点击绿旗，使角色说话 ->","completion":" \"when green flag clicked\",\"say [Hello!] for [2] seconds\",\"say [Imagine if...] for [2] seconds\"\n"}
 """
@@ -40,12 +40,10 @@ PROMPT = """
 {"prompt":"点击角色，播放音效，使角色动起来 ->","completion":" “when [space] key pressed\",“start sound [Chirp]\",\"repeat [4]\",“switch costume to [monkey-a]\",\"wait [0.2] seconds\",“switch costume to [monkey-b]\",\"wait [0.2] seconds\"\n"}
 {"prompt":"点击角色，改变状态 ->","completion":" “when the sprite clicked\",\"go to [front] layer\",\"broadcast [drink]\",\"wait [1] seconds\",\"switch costume to [glass water-b]\",start sound [Water Drop]\",\"wait [1] seconds\",\"switch costume to [glass water-a]\"\n"}
 {"prompt":"角色收到信息，进行喂水，回到原位 ->","completion":" \"when i receive [drink]\",“glide [1] secs to [Glass water]\",\"wait [1] seconds\",“glide [1] secs to x: [-50] y: [60]\"\n"}
-{"prompt":"点击角色，根据不同选择，回复消息 ->","completion":" “when the sprite clicked\",\"set [Choice] to pick random (1) to (3)\",\"if (choice) = (1) then\",\"say [I like bananas!] for [2] seconds\",\"if (choice) = (2) then\",\"say [That tickles!] for [2] seconds\",\"if (choice) = (3) then\",\"say [Let's play!] for [2] seconds\"\n"}
 {"prompt":"点击小球，播放音乐，并跳动 ->","completion":" “when the sprite clicked\",\"go to [front] layer\",\"broadcast [play]\",\"wait until touching [Monkey] ?\",\"start sound [Boing]\",\"repeat [10]\",\"change by [-5]\",\"repeat [10]\",\"change by [5]\"\n"}
 {"prompt":"点击绿旗，让角色到舞台顶端 ->","completion":" “when green flag clicked\",“go to [random position]\",\"set y to [180]\"\n"}
 """
-
-MODEL = "gpt-3.5-turbo"
+PROMPT_NEW = json.load(open("./scratch_prompt.json", "r"))
 
 
 def chatgpt_extract_code(text):
@@ -54,19 +52,19 @@ def chatgpt_extract_code(text):
         "role":
         "user",
         "content":
-        f"""提取<文本>中包含的code：<{text}>，并以json形式输出，其中包含一个键:code"""
+        f"""Extract the code contained contained within {text} and output in JSON format, including a key: "code"."""
     })
     agent_reply = create_chat_completion(model=MODEL,
                                          messages=code_agent,
                                          temperature=0)
-    print(agent_reply)
+    print(agent_reply, type(agent_reply))
     agent_reply = json.loads(agent_reply)["code"]
     if isinstance(agent_reply, list):
         return agent_reply
     elif isinstance(agent_reply, str):
         return agent_reply.splitlines()
     else:
-        return f"Not valid:{type(agent_reply)}, please check the content"
+        return f"{agent_reply},Not valid:{type(agent_reply)}, please check the content"
 
 
 def extract_code(text):
@@ -138,58 +136,36 @@ def generate_code_step(content, steps):
     '''
     code_agent = []
     if steps == "step1":
-        
         code_agent.append({
             "role":
             "user",
             "content":
-            f"""我有一个问题:{content},从这些选项里面选择若干个相关的：Motion,Looks,Sound,Events,Control,Sensing,Operators,Variables，不要额外的解释"""
+            f"""
+            Solve a question answering task with interleaving Thought. Please select the answer from the Scratch 3.0 categories below: Motion,Looks,Sound,Events,Control,Sensing,Operators,Variables.
+            Here are some examples.
+            Question:How do I make a character walk from sitting to right?
+            Answer:Use Motion to control character movement, Looks to switch character actions, and Control to repeat execution.
+            Question:How do I use the keyboard to control my character's movement?
+            Answer:Use Motion to control character movement and Events to detect keyboard input.
+            Question:{content}
+            """
         })
     elif steps == "step2":
-        
         code_agent.append({
             "role":
             "user",
             "content":
-            f"""使用Scratch3.0中的代码块，按照尖括号内的代码的风格：<{PROMPT}>。回答问题，请补充completion["prompt":{content} ->,"completion":]"""
+            f"""
+            Solve a question answering task with interleaving Thought. Please provide your answer based on the Scratch Wiki Blocks.
+            Here are some examples.
+            {PROMPT_NEW}
+            Question:{content}
+            """
         })
     agent_reply = create_chat_completion(model=MODEL,
                                          messages=code_agent,
                                          temperature=0)
-    # print(agent_reply)
-    # TODO 修改prompt使生成更可控
-    # content = json.loads(agent_reply)
-    # step1, step2 = content["step1"], content["step2"]
     return agent_reply
-    # if isinstance(agent_reply, list):
-    #     return ["scratchCategoryId-"+reply.lower() for reply in agent_reply]
-    # elif isinstance(agent_reply, str):
-    #     return ["scratchCategoryId-"+agent_reply.lower()]
-    # else:
-    #     print(f"Not valid:{type(agent_reply)}, please check the content")
-
-
-# def extract_step(input_text):
-    # 查找步骤1的位置
-    # step1_index = input_text.find("step1")
-    # step2_index = input_text.find("step2")
-    # if step1_index != -1:
-    #     # 提取步骤1后面的内容
-    #     step1_content = input_text[step1_index + len("step1") + 1:]
-    #     step2_index_1 = step1_content.find("step2")
-    #     if step2_index_1 != -1:
-    #         # 如果找到步骤2，则截取步骤1后面到步骤2之间的内容
-    #         step1_content = step1_content[:step2_index_1]
-    #     # 去除换行符和空格
-    #     step1_content = step1_content.strip()
-    #     # 查找步骤2的位置
-    # if step2_index != -1:
-    #     # 提取步骤2后面的内容
-    #     step2_content = input_text[step2_index + len("步骤2") + 1:]
-    #     # 去除换行符和空格
-    #     step2_content = step2_content.strip()
-    # return step1_content, step2_content
-
 
 def chatgpt_extract_step1(text):
     code_agent = []
@@ -197,7 +173,7 @@ def chatgpt_extract_step1(text):
         "role":
         "user",
         "content":
-        f"""模块类别：Looks,Sound,Events,Control,Sensing,Operators,Variables，你的工作是提取<{text}>中包含的模块类别，并以json格式输出，包含一个键:type"""
+        f"""Module categories: Looks, Sound, Events, Control, Sensing, Operators, Variables. Your task is to extract the module categories contained within <{text}>, and output them in JSON format, including a key: "type"."""
     })
     agent_reply = create_chat_completion(model=MODEL,
                                          messages=code_agent,
@@ -210,6 +186,20 @@ def chatgpt_extract_step1(text):
         return ["scratchCategoryId-"+agent_reply.lower()]
     else:
         print(f"Not valid:{type(agent_reply)}, please check the content")
+
+def chatgpt_extract_step2(step2):
+    motion_blocks = MotionBlocks()
+    looks_blocks = LooksBlocks()
+    sound_blocks = SoundBlocks()
+    events_blocks = EventsBlocks()
+    control_blocks = ControlBlocks()
+    sensing_blocks = SensingBlocks()
+    ass_block = AssembleBlocks(motion_blocks, looks_blocks, sound_blocks,
+                            events_blocks, control_blocks, sensing_blocks)
+    extracted_reply = chatgpt_extract_code(step2)
+    block_list = cal_similarity(extracted_reply, ass_block)
+    block_list = [block for block in block_list if block]
+    return block_list
 
 
 # def test():
@@ -226,7 +216,7 @@ def chatgpt_extract_step1(text):
 #     content = generate_code_step("使用键盘控制角色移动")
 #     print(content)
 #     step1, step2 = extract_step(content)
-    
+
 #     print("step1:", step1)
 #     print(step2)
 #     extracted_step1 = chatgpt_extract_step1(step1)

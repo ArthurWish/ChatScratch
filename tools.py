@@ -1,6 +1,3 @@
-import Levenshtein as lv
-from sympy import im
-from zipp import Path
 from block_types import *
 from chat import create_chat_completion
 import os
@@ -8,7 +5,7 @@ import hashlib
 from wand.image import Image as wImage
 import xml.etree.ElementTree as ET
 
-MODEL = "gpt-3.5-turbo"
+MODEL = "gpt-4-0613"
 
 
 def init_code_agent():
@@ -19,7 +16,7 @@ def question_and_relpy(question):
     messages = []
     messages.append({"role": "user", "content": question})
     agent_reply = create_chat_completion(
-        model="gpt-3.5-turbo",
+        model=MODEL,
         messages=messages,
     )
     # messages.append({"role": "assistant", "content": agent_reply})
@@ -233,7 +230,7 @@ def translate_to_english(content):
         "role":
         "user",
         "content":
-        f"""将{content}翻译为英文，只回答结果, in English:{content}
+        f"""Translate the following Chinese sentences into English:{content}
     """
     })
     # print(temp_memory)
@@ -242,12 +239,13 @@ def translate_to_english(content):
                                   temperature=0)
 
 def translate_to_chinese(content):
+    """将我给定的文本翻译为中文，只回答结果："""
     temp_memory = []
     temp_memory.append({
         "role":
         "user",
         "content":
-        f"""将英文描述{content}翻译为中文。并简单概括，只回答结果, 用中文:{content}
+        f"""Translate the following English sentences into Chinese:{content}
     """
     })
     # print(temp_memory)

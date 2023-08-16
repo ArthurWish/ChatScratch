@@ -1,7 +1,6 @@
 import base64
-from urllib import response
-from flask import Flask, Response, jsonify, redirect, request, send_file, send_from_directory, render_template
-from speech import speech_to_text, text_to_speech
+from flask import Flask, jsonify, request
+from speech import text_to_speech
 import os
 import json
 from chat import create_chat_completion
@@ -19,19 +18,8 @@ CORS(app)
 os.makedirs("./static", exist_ok=True)
 os.makedirs("./static/codes", exist_ok=True)
 
-# MODEL = "gpt-3.5-turbo"
-MODEL = "gpt-4-0613"
 
 story_info = StoryInfo()
-
-motion_blocks = MotionBlocks()
-looks_blocks = LooksBlocks()
-sound_blocks = SoundBlocks()
-events_blocks = EventsBlocks()
-control_blocks = ControlBlocks()
-sensing_blocks = SensingBlocks()
-ass_block = AssembleBlocks(motion_blocks, looks_blocks, sound_blocks,
-                           events_blocks, control_blocks, sensing_blocks)
 
 
 @app.route("/hello")
@@ -72,7 +60,7 @@ def get_audio():
         content = transcript["text"]
         # print(content)
     except:
-        print("error")
+        print("get_audio error")
     story_info.add(act, type, imgid, content)
     return jsonify({'status': 'success', 'content': content})
 
@@ -84,14 +72,15 @@ def get_description():
     assert act == "1" or act == "2" or act == "3" or act == "4"
     type = request.form.get('type')
     assert type == "role" or type == "background" or type == "event" or type == "code"
-    print(act,type,imgid)
+    print(act, type, imgid)
     if imgid < len(story_info.acts[act][type]):
         Text = story_info.acts[act][type][imgid]
     else:
         Text = '请输入描述'
-    print(Text)
+    print("get_description", Text)
 
-    return jsonify({ 'Text': Text})
+    return jsonify({'Text': Text})
+
 
 @app.route('/send_description', methods=['GET', 'POST'])
 def send_description():
@@ -100,21 +89,21 @@ def send_description():
     assert act == "1" or act == "2" or act == "3" or act == "4"
     type = request.form.get('type')
     assert type == "role" or type == "background" or type == "event" or type == "code"
-    print(act,type,imgid)
+    print(act, type, imgid)
     Text = request.form.get('Text')
     print(Text)
     try:
         story_info.add(act, type, imgid, Text)
-        
-        return jsonify({ 'Status': ['Success']})
+        return jsonify({'Status': ['Success']})
     except:
-        return jsonify({ 'Status': ['Fail']})
- 
+        return jsonify({'Status': ['Fail']})
+
+
 @app.route('/generate', methods=['GET', 'POST'])
 def generate():
     """return images and sounds"""
-    id = request.form.get('id') # part id
-    index_id = request.form.get('index_id') # current part, which image
+    id = request.form.get('id')  # part id
+    index_id = request.form.get('index_id')  # current part, which image
     index_id = int(index_id)
     assert id == "1" or id == "2" or id == "3"
     assests_path = f"static/{id}"
@@ -130,7 +119,8 @@ def generate():
     # user already input
     if len(content) >= index_id+1:
         current_drawing = content[index_id]
-        current_drawing=translate_to_english(current_drawing)
+        # input is English
+        current_drawing = translate_to_chinese(current_drawing)
         print("current_drawing", current_drawing)
         for index in range(4):
             output["sound"].append(text_to_speech(
@@ -146,15 +136,16 @@ def generate():
         temp_memory.append(prompt)
         agent_reply = create_chat_completion(model=MODEL,
                                              messages=temp_memory,
-                                             temperature=0.3)
+                                             temperature=0.7)
         print("agent: ", agent_reply)
         if '\n' not in agent_reply:
             raise f"ERROR! Please check {agent_reply}"
         reply_splited = split_to_parts(agent_reply)
         if len(reply_splited) != 4:
-            return "the reply is not 4"
+            print("the reply is not 4")
+            return
         for index, reply in enumerate(reply_splited):
-            reply=translate_to_english(reply)
+            reply = translate_to_chinese()(reply)
             output["sound"].append(text_to_speech(
                 reply, f"{assests_path}/sound-{index}"))
             output["image"].append(
@@ -163,11 +154,11 @@ def generate():
                               save_path=f'{assests_path}/image-{index}'))
     else:
         content = content[0]
-        content=translate_to_english(content)
-    
+        # content=translate_to_english(content)
+
         for index in range(4):
             output["sound"].append(text_to_speech(
-                content, f"{assests_path}/sound-{index}"))
+                translate_to_english(content), f"{assests_path}/sound-{index}"))
             output["image"].append(
                 generate_draw(drawing_type=askterm,
                               drawing_content=content,
@@ -227,14 +218,14 @@ def generate_img_to_img():
     content = story_info.get_act(act_name=id, key=askterm)
     current_role = content[int(index_id)]
     print("current_role", current_role)
-    
-    current_role=translate_to_english(current_role)
+
+    current_role = translate_to_english(current_role)
     print("current_role", current_role)
-    if askterm=="role":
-        content=rule_refine_drawing_prompt_for_role(current_role)
+    if askterm == "role":
+        content = rule_refine_drawing_prompt_for_role(current_role)
     else:
         content = rule_refine_drawing_prompt(current_role)
-   
+
     # content = rule_refine_drawing_prompt(translate_to_english(current_role))
     # content = content +  ['Vivid Colors, white background']
     # content = ['a cat, Highly detailed, Vivid Colors, white background']
@@ -244,7 +235,8 @@ def generate_img_to_img():
             prompt=content, base_image="static/temp.png")
         if askterm == "role":
             # rmbg_image = rm_img_bg(image_base64)
-            rmbg_image = rm_img_bg_local("image_to_image.png", "rmbg_image.png")
+            rmbg_image = rm_img_bg_local(
+                "image_to_image.png", "rmbg_image.png")
             return jsonify({'status': 'success', 'url': rmbg_image})
         else:
             return jsonify({'status': 'success', 'url': image_base64})
@@ -299,7 +291,7 @@ def generate_code():
     os.makedirs('static/codes', exist_ok=True)
     id = request.form.get("id")
     audio_blob = request.files['file']
-    print(id, audio_blob)
+    # print(id, audio_blob)
     audio_blob.save(f'static/codes/code-question-{id}.webm')
     audio_file = open(f'static/codes/code-question-{id}.webm', 'rb')
     transript = openai.Audio.transcribe("whisper-1", audio_file)
@@ -314,17 +306,10 @@ def generate_code():
     print("step2", step2)
     extracted_step1 = chatgpt_extract_step1(step1)
     print("extracted_step1", extracted_step1)
-    
-    # step1
     with open(f"static/codes/agent_reply-{id}.json", "w", encoding='utf-8') as f:
         json.dump(extracted_step1, f)
-        # f.write(extracted_step1)
-    audio_base64 = text_to_speech(step1, f"static/codes/agent-reply-{id}.mp3")
-    # f.write(step2)
-    # step2
-    extracted_reply = chatgpt_extract_code(step2)
-    block_list = cal_similarity(extracted_reply, ass_block)
-    block_list = [block for block in block_list if block]
+    audio_base64 = text_to_speech(translate_to_chinese(step1), f"static/codes/agent-reply-{id}.mp3")
+    block_list = chatgpt_extract_step2(step2)
     print(block_list)
     output_json = 'static/codes/block_suggestion.json'
     data = {}
@@ -334,10 +319,6 @@ def generate_code():
     data[str(int(id)-1)] = block_list
     with open(output_json, 'w') as f:
         json.dump(data, f, indent=4)
-    # print(block_list)
-    # with open(f"static/codes/block_suggestion-{id}.txt", 'w') as f:
-    #     list_str = '\n'.join(str(element) for element in block_list)
-    #     f.write(list_str)
     return jsonify({'file': audio_base64})
 
 
@@ -350,4 +331,3 @@ if __name__ == '__main__':
     # block_list = cal_similarity(extracted_reply, ass_block)
     # block_list = [block for block in block_list if block]
     # print(block_list)
-    

@@ -1,23 +1,15 @@
 import base64
 import configparser
 import io
-import Levenshtein as lv
 import requests
 from block_types import *
-from dataclasses import asdict
-from typing import List
 from chat import create_chat_completion
 import openai
 from base64 import b64decode, b64encode
 from PIL import Image
-import os
-import hashlib
-from wand.image import Image as wImage
-import xml.etree.ElementTree as ET
 from io import BytesIO
 from rembg import remove
-
-MODEL = "gpt-3.5-turbo"
+from tools import MODEL
 
 
 #解码图像
@@ -81,10 +73,28 @@ def generate_draw_with_stable(prompt, save_path):
 
 
 def rule_refine_drawing_prompt_for_role(content):
-    content=content[0:-1]
-    # return f"very cute illustration for a children's Scratch project, {content} with a transparent background, by Katie Risor,Cartoonish Illustration Style,Acrylic, 4k"
-    return f"Cute cartoon drawing, {content} with a pure background, cartoon, animation, 2D"
+    temp_memory = []
+    
+    temp_memory.append({
+            "role":
+            "user",
+            "content":
+            f"""you are an expert on prompting engineering for text to image generation。Here is a character<{content}>。
+            I will give you a example, fill the prompt with knowledge for <{content}>. 
+            template "[character], [action/posture/feature], [artist], [style]"，
+            Example：Cute small dog, sitting in a movie theater, eating popcorn watching a movie, character design by mark ryden and pixar and hayao miyazaki, 
+            2D, animation, cartoon. 
+            Respond the prompt only, in English.
+        """
+        })
 
+    agent_reply = create_chat_completion(model=MODEL,
+                                         messages=temp_memory,
+                                         temperature=0.7)
+    print("agent: ", agent_reply)
+    # return f"very cute illustration for a children's Scratch project, {content} with a transparent background, Cartoonish Illustration Style,Acrylic, 4k"
+    return agent_reply
+ 
 def rule_refine_drawing_prompt(content):
     """
     very cute illustration for a children's Scratch project, A runnnig bear, Bold and Bright Illustration Styles, Digital Painting, by Pixar style, no background objects
@@ -247,7 +257,7 @@ def generate_draw_with_stable_v2(prompt, save_path):
     payload = {
         "prompt": prompt,
         "negative_prompt": "ugly, ugly arms, ugly hands, ugly teeth, ugly nose, ugly mouth, ugly eyes, ugly ears,",
-        "steps": 50,
+        "steps": 25,
         "sampler_name": "Euler a",
         "cfg_scale": 7,
         "width":512,
@@ -286,7 +296,7 @@ def generate_image_to_image_v2(prompt, base_image):
         "cfg_scale": 7,
         "sampler_name": "Euler a",
         "restore_faces": False,
-        "steps": 25,
+        "steps": 50,
         "script_args": ["outpainting mk2", ]
     }
     response = requests.post(
