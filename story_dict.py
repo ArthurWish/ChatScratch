@@ -60,6 +60,7 @@ class StoryInfo:
                 print(f"No key named {key} found in act {act_name}.")
                 return
             values = act[key]
+        
             return values
         
     def get_prompt(self, part_id, askterm):
@@ -75,22 +76,22 @@ class StoryInfo:
                 role = self.get_act('1', 'role')
                 str3 = f'In Act 1,'
                 if role == []:
-                    str4 = 'Please provide four characters for me to use in my artwork, not exceeding 100 words.'
+                    str4 = 'Please provide four characters for me to use in my artwork, not exceeding 100 words, in Chinese.'
                 else:
-                    str4 = f'I have the {role} role. Please provide four related roles for illustration purposes. Provide descriptions of the roles without mentioning {role}. No more than 100 words.'
+                    str4 = f'I have the {role} role. Please provide four related roles for illustration purposes. Provide descriptions of the roles without mentioning {role}. No more than 100 words, in Chinese'
             elif askterm == 'background':
                 role = self.get_act('1', 'role')
                 background = self.get_act('1', 'background')
                 str3 = f'In Act 1, it has been established that the character is {role}.'
                 if background == []:
-                    str4 = f'Provide me with four scenaios that make sense in the story for me to draw, in no more than 100 words.'
+                    str4 = f'Provide me with four scenaios that make sense in the story for me to draw, in no more than 100 words, in Chinese'
                 else:
-                    str4 = f'I have already drawn the scene: {background}. Could you please provide me with four scenarios related to the scene {background} for me to draw? Keep it under 100 words.'
+                    str4 = f'I have already drawn the scene: {background}. Could you please provide me with four scenarios related to the scene {background} for me to draw? Keep it under 100 words, in Chinese'
             else:
                 role = self.get_act('1', 'role')
                 background = self.get_act('1', 'background')
                 str3 = f'In Act 1, the character has been identified as {role} and the scene as {background}.'
-                str4 = 'Please give me four events that fit logically into the story for use in my drawing, in no more than 100 words.'
+                str4 = 'Please give me four events that fit logically into the story for use in my drawing, in no more than 100 words, in Chinese'
         elif part_id == 2:
             act1 = self.get_act("1")
             role_act1 = self.get_act("1", "role")
@@ -109,7 +110,7 @@ class StoryInfo:
                 if background == []:
                     str4 = f'Based on Act 1, please give me four scenes that fit the logic of the story for use in my painting.'
                 else:
-                    str4 = f'I have drawn scene:{background}, can you please give four four scenes related to scene {background} for me to draw and use in no more than 100 words.'
+                    str4 = f'I have drawn scene:{background}, can you please give four four scenes related to scene {background} for me to draw and use in no more than 100 words, in Chinese'
             else:
                 role = self.get_act('2', 'role')
                 background = self.get_act('2', 'background')

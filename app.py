@@ -119,15 +119,14 @@ def generate():
     # user already input
     if len(content) >= index_id+1:
         current_drawing = content[index_id]
-        # input is English
-        current_drawing = translate_to_chinese(current_drawing)
+        current_drawing_e = translate_to_english(current_drawing)
         print("current_drawing", current_drawing)
         for index in range(4):
             output["sound"].append(text_to_speech(
-                current_drawing, f"{assests_path}/sound-{index}"))
+                (current_drawing), f"{assests_path}/sound-{index}"))
             output["image"].append(
                 generate_draw(drawing_type=askterm,
-                              drawing_content=current_drawing,
+                              drawing_content=current_drawing_e,
                               save_path=f'{assests_path}/image-{index}'))
     # user not input
     elif len(content) < index_id+1:
@@ -145,9 +144,9 @@ def generate():
             print("the reply is not 4")
             return
         for index, reply in enumerate(reply_splited):
-            reply = translate_to_chinese()(reply)
             output["sound"].append(text_to_speech(
                 reply, f"{assests_path}/sound-{index}"))
+            reply = translate_to_english(reply)
             output["image"].append(
                 generate_draw(drawing_type=askterm,
                               drawing_content=reply,
@@ -207,14 +206,17 @@ def generate_img_to_img():
     askterm = request.form.get('askterm')
     assert askterm == "role" or askterm == "background" or askterm == "event"
     os.makedirs(assests_path, exist_ok=True)
-    base_img = request.form.get("url").split(',')[1]  # base64
-    base_img_bytes = base64.b64decode(base_img)
-    img = Image.open(io.BytesIO(base_img_bytes)).convert('RGBA')
-    bg = Image.new('RGBA', img.size, (255, 255, 255))
-    # TODO 角色背景分开
-    # 在背景上粘贴原图像（使用原图像作为遮罩以保留其透明度）
-    combined = Image.alpha_composite(bg, img)
-    combined.convert('RGB').save('static/temp.png', 'PNG')
+    if request.form.get("url") == 'placeholder':
+        shutil.copy('static/blank.png', 'static/temp.png')
+    else:
+        base_img = request.form.get("url").split(',')[1]  # base64
+        base_img_bytes = base64.b64decode(base_img)
+        img = Image.open(io.BytesIO(base_img_bytes)).convert('RGBA')
+        bg = Image.new('RGBA', img.size, (255, 255, 255))
+        # TODO 角色背景分开
+        # 在背景上粘贴原图像（使用原图像作为遮罩以保留其透明度）
+        combined = Image.alpha_composite(bg, img)
+        combined.convert('RGB').save('static/temp.png', 'PNG')
     content = story_info.get_act(act_name=id, key=askterm)
     current_role = content[int(index_id)]
     print("current_role", current_role)

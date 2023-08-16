@@ -81,10 +81,8 @@ def rule_refine_drawing_prompt_for_role(content):
             "content":
             f"""you are an expert on prompting engineering for text to image generation。Here is a character<{content}>。
             I will give you a example, fill the prompt with knowledge for <{content}>. 
-            template "[character], [action/posture/feature], [artist], [style]"，
-            Example：Cute small dog, sitting in a movie theater, eating popcorn watching a movie, character design by mark ryden and pixar and hayao miyazaki, 
-            2D, animation, cartoon. 
-            Respond the prompt only, in English.
+            template "[character], [artist], [style]"，
+            Example：Cute small dog, full character, design by mark ryden and pixar and hayao miyazaki, 2D, animation, cartoon, high quality, 4k. Respond the prompt only, in English.
         """
     })
 
@@ -97,10 +95,32 @@ def rule_refine_drawing_prompt_for_role(content):
 
 
 def rule_refine_drawing_prompt(content):
+    
+    temp_memory = []
+
+    temp_memory.append({
+        "role":
+            "user",
+            "content":
+            f"""you are an expert on prompting engineering for text to image generation。Here is a landscape<{content}>。
+            I will give you a example, fill the prompt with knowledge for <{content}>. 
+            template "[landscape], [artist], [style]"，
+            Example：best high quality landscape. Ethereal gardens of marble built in a shining teal river in future city. 
+            By Dorian Cleavenger. Long shot, studio lighting, octane render, 
+            Respond the prompt only, in English.
+        """
+    })
+
+    agent_reply = create_chat_completion(model=MODEL,
+                                         messages=temp_memory,
+                                         temperature=0.7)
+    print("agent: ", agent_reply)
+    
+    return agent_reply
     """
-    very cute illustration for a children's Scratch project, A runnnig bear, Bold and Bright Illustration Styles, Digital Painting, by Pixar style, no background objects
-    """
-    return f"landscape painting, {content}, no character in the picture,  by studio ghibli, makoto shinkai, by artgerm, by wlop, by greg rutkowski, Watercolor Painting, 4k"
+    # # very cute illustration for a children's Scratch project, A runnnig bear, Bold and Bright Illustration Styles, Digital Painting, by Pixar style, no background objects
+    # # """
+    # return f"best high quality landscape, {content}, no character in the picture,  by studio ghibli, makoto shinkai, by artgerm, by wlop, by greg rutkowski, Watercolor Painting, 4k"
 
 
 def chatgpt_refine_drawing_prompt(askterm, content):
@@ -340,7 +360,7 @@ def generate_controlnet(prompt, base_image):
         # "Digital art, a colorful bird, by studio ghibli, makoto shinkai, by artgerm, by wlop, by greg rutkowski, Vivid Colors, white background,simple background",
         "negative_prompt": "ugly, ugly arms, ugly hands, ugly teeth, ugly nose, ugly mouth, ugly eyes, ugly ears,scary,handicapped,",
         "batch_size": 1,
-        "steps": 50,
+        "steps": 30,
         "sampler_name": "Euler a",
         "cfg_scale": 7,
         "width": 512,
@@ -353,8 +373,10 @@ def generate_controlnet(prompt, base_image):
                         "enabled": True,
                         "input_image": img_base64,
                         # "control_type":"Scribble"
-                        "module": 'scribble_xdog',
+                        # "module": 'scribble_xdog',
                         "model": 'control_v11p_sd15_scribble [d4ba51ff]',
+                        "control_mode":1,   #"My prompt is more important"
+                        "module":"invert"
                         # "starting_control_step":0,
                         # "ending_control_step":1,
                         # "guessmode":False
