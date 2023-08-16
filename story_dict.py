@@ -18,9 +18,12 @@ class StoryInfo:
             }
         }
 
-    def add(self, act, key, value):
-        
-        self.acts[act][key].append(value)
+    def add(self, act, key,  id,  value):
+        id = int(id)
+        if id < len(self.acts[act][key]):
+            self.acts[act][key][id] = value
+        else:
+            self.acts[act][key].append(value)
         self.print_act(act)
 
     def print_act(self, act_name, key=None):
@@ -65,80 +68,80 @@ class StoryInfo:
         # act1 = self.print_act('act1')
         # act2 = self.print_act('act2')
         # total settings
-        str1 = f"""你是一个故事编剧，儿童正在创作一个共三幕的故事，每一幕都包含人物、场景和事件三个部分。"""
+        str1 = f"""You are a story writer and children are working on a story in three acts, each of which contains three parts: characters, scenes and events."""
         if part_id == 1:
-            str2 = f'目前处于第1幕。'
+            str2 = f'Previously in Act 1.'
             if askterm == 'role':
                 role = self.get_act('1', 'role')
-                str3 = f'在第1幕中,'
+                str3 = f'In Act 1,'
                 if role == []:
-                    str4 = '请你给出四个角色供我绘画使用，不超过100个字。'
+                    str4 = 'Please provide four characters for me to use in my artwork, not exceeding 100 words.'
                 else:
-                    str4 = f'我有角色：{role}，请你给出与角色{role}相关的四个角色供我绘画使用，不超过100个字'
+                    str4 = f'I have the {role} role. Please provide four related roles for illustration purposes. Provide descriptions of the roles without mentioning {role}. No more than 100 words.'
             elif askterm == 'background':
                 role = self.get_act('1', 'role')
                 background = self.get_act('1', 'background')
-                str3 = f'在第1幕中,已经确定了角色是{role}。'
+                str3 = f'In Act 1, it has been established that the character is {role}.'
                 if background == []:
-                    str4 = f'给出四种符合故事逻辑的场景供我绘画使用，不超过100个字。'
+                    str4 = f'Provide me with four scenaios that make sense in the story for me to draw, in no more than 100 words.'
                 else:
-                    str4 = f'我已经绘制了场景：{background}，请你给出四种与场景{background}相关的四种场景供我绘画使用，不超过100个字。'
+                    str4 = f'I have already drawn the scene: {background}. Could you please provide me with four scenarios related to the scene {background} for me to draw? Keep it under 100 words.'
             else:
                 role = self.get_act('1', 'role')
                 background = self.get_act('1', 'background')
-                str3 = f'在第1幕中,已经确定了角色是{role},场景是{background}。'
-                str4 = '请你给出四种符合故事逻辑的事件供我绘画使用，不超过100个字。'
+                str3 = f'In Act 1, the character has been identified as {role} and the scene as {background}.'
+                str4 = 'Please give me four events that fit logically into the story for use in my drawing, in no more than 100 words.'
         elif part_id == 2:
             act1 = self.get_act("1")
-            str2 = f"""之前已经确认的部分是：第1幕，{act1}。"""
+            role_act1 = self.get_act("1", "role")
+            str2 = f"""The previously identified part is: Act 1, {act1}."""
             if askterm == 'role':
-                role_act1 = self.get_act("1", "role")
                 role_act2 = self.get_act("2", "role")
                 if role_act2 == []:
-                    str3 = f'已经存在的角色是{role_act1}。'
+                    str3 = f'The role that already setting is {role_act1}.'
                 else:
-                    str3 = f'已经存在的角色是{role_act1+role_act2}。'
-                str4 = f'根据这些已经绘制好的角色，请你给出四种符合故事逻辑的角色供我绘画使用。'
+                    str3 = f'The roles that already exist are {role_act1+role_act2}.'
+                str4 = f'According to these established characters, provide me with four fitting characters for the story logic, which I can draw and use.'
             elif askterm == 'background':
                 role_act2 = self.get_act('2', 'role')
                 background = self.get_act('2', 'background')
-                str3 = f'在第2幕中,已经存在的角色是{role_act1+role_act2}。'
+                str3 = f'In Act 2, the roles that already exist are {role_act1+role_act2}.'
                 if background == []:
-                    str4 = f'根据第1幕，请你给出四种符合故事逻辑的场景供我绘画使用。'
+                    str4 = f'Based on Act 1, please give me four scenes that fit the logic of the story for use in my painting.'
                 else:
-                    str4 = f'我已经绘制了场景：{background}，请你给出四种与场景{background}相关的四种场景供我绘画使用，不超过100个字。'
+                    str4 = f'I have drawn scene:{background}, can you please give four four scenes related to scene {background} for me to draw and use in no more than 100 words.'
             else:
                 role = self.get_act('2', 'role')
                 background = self.get_act('2', 'background')
-                str3 = f'在第2幕中,已经确定了角色是{role},场景是{background}。'
-                str4 = f'根据第1幕，请你给出四种符合故事逻辑的事件供我绘画使用。'
+                str3 = f'In Act 2, the character has been identified as {role} and the scene as {background}.'
+                str4 = f'Based on Act 1, please give me four events that fit logically into the story for me to use in my drawing.'
         elif part_id == 3:
             act1 = self.get_act("1")
             act2 = self.get_act("2")
-            str2 = f"""之前已经确认的部分是：第1幕{act1}和第2幕{act2}。"""
+            role_act1 = self.get_act("1", "role")
+            role_act2 = self.get_act("2", "role")
+            str2 = f"""The parts that have been previously identified are: Act 1, {act1} and Act 2, {act2}."""
             if askterm == 'role':
-                role_act2 = self.get_act("2", "role")
                 role_act3 = self.get_act("3", "role")
                 if role_act3 == []:
-                    str3 = f'在第2幕中,已经存在的角色是{role_act2}。'
+                    str3 = f'The established characters are:{role_act1+role_act2}'
                 else:
-                    str3 = f'已经存在的角色是{role_act1+role_act2+role_act3}。'
-                str4 = f'根据这些已经绘制好的角色，请你给出四种符合故事逻辑的角色供我绘画使用。'
+                    str3 = f'The established characters are:{role_act1+role_act2+role_act3}.'
+                str4 = f'Based on these characters, please give me four characters that fit logically into the story for me to draw and use.'
                 
             elif askterm == 'background':
-                role = self.get_act('3', 'role')
+                role_act3 = self.get_act('3', 'role')
                 background = self.get_act('3', 'background')
-                str3 = f'在第3幕中,已经确定了角色是{role}'
+                str3 = f'The established characters are:{role_act1+role_act2+role_act3}.'
                 if background == []:
-                    
-                    str4 = f'根据第1幕和第2幕，请你给出四种符合故事逻辑的场景供我绘画使用。'
+                    str4 = f'Based on Act 1 and Act 2, give me four scenes that fit the logic of the story to use in my painting.'
                 else:
-                    str4 = f'根据第1幕和第2幕，以及第三幕的场景{background}，请你给出四种符合故事逻辑的场景供我绘画使用。'
+                    str4 = f'Based on Act 1 and Act 2, and the scene {background} from Act 3, give me four scenes that fit the logic of the story to use in my painting.'
             else:
                 role = self.get_act('3', 'role')
                 background = self.get_act('3', 'background')
-                str3 = f'在第3幕中,已经确定了角色是{role},场景是{background}'
-                str4 = '根据第1幕和第2幕，请你给出四种符合故事逻辑的事件供我绘画使用。'
+                str3 = f'In Act 3, the character has been identified as {role} and the scene as {background}.'
+                str4 = 'Based on Acts 1 and 2, please give me four events that fit logically into the story for me to use in my drawing.'
         content = str1 + str2 + str3 + str4
         return {"role": "user", "content": f"""{content}"""}
 

@@ -82,7 +82,8 @@ def generate_draw_with_stable(prompt, save_path):
 
 def rule_refine_drawing_prompt_for_role(content):
     content=content[0:-1]
-    return f"very cute illustration for a children's Scratch project, {content} with a transparent background, by Katie Risor,Cartoonish Illustration Style,Acrylic, 4k"
+    # return f"very cute illustration for a children's Scratch project, {content} with a transparent background, by Katie Risor,Cartoonish Illustration Style,Acrylic, 4k"
+    return f"Cute cartoon drawing, {content} with a pure background, cartoon, animation, 2D"
 
 def rule_refine_drawing_prompt(content):
     """
@@ -120,31 +121,37 @@ def chatgpt_refine_drawing_prompt(askterm, content):
 
 
 def generate_draw(drawing_type, drawing_content, save_path):
-    temp_memory = []
+    # temp_memory = []
+    # if drawing_type == "role":
+    #     temp_memory.append({
+    #         "role":
+    #         "user",
+    #         "content":
+    #         f"""你是人工智能程序的提示生成器。这里有一个描述<{drawing_content}>。我给你一个模板，然后你根据提示模板生成图像提示。提示模板："[type of art], [subject or topic], [style], [colors]"，图像提示例子：Very cute children's illustration,by studio ghibli, makoto shinkai, by artgerm, by wlop, by greg rutkowski, a cat, playing, Vivid Colors, white background, soft lines and textures. Respond the prompt only, in English.
+    #     """
+    #     })
+    # elif drawing_type == "background":
+    #     temp_memory.append({
+    #         "role":
+    #         "user",
+    #         "content":
+    #         f"""你是人工智能程序的提示生成器。这里有一个关于描述<{drawing_content}>，我给你一个模板，然后你根据提示模板生成图像提示。提示模板："[type of art], [subject or topic], [aesthetic details, lighting, and styles], [colors]"，图像提示例子：Very cute children's illustration,by studio ghibli, makoto shinkai, by artgerm, by wlop, by greg rutkowski, a tree, Vivid Colors, white background, soft lines and textures. Respond the prompt only, in English.
+    #     """
+    #     })
+    # else:
+    #     raise "Not valid drawing type"
+    # # print(temp_memory)
+    # agent_reply = create_chat_completion(model=MODEL,
+    #                                      messages=temp_memory,
+    #                                      temperature=1.2)
+    # print("agent: ", agent_reply)
     if drawing_type == "role":
-        temp_memory.append({
-            "role":
-            "user",
-            "content":
-            f"""你是人工智能程序的提示生成器。这里有一个描述<{drawing_content}>。我给你一个模板，然后你根据提示模板生成图像提示。提示模板："[type of art], [subject or topic], [style], [colors]"，图像提示例子：Very cute children's illustration,by studio ghibli, makoto shinkai, by artgerm, by wlop, by greg rutkowski, a cat, playing, Vivid Colors, white background, soft lines and textures. Respond the prompt only, in English.
-        """
-        })
+        agent_reply = f"Cute cartoon drawing, {drawing_content}, full character, cartoon style, pure background "
     elif drawing_type == "background":
-        temp_memory.append({
-            "role":
-            "user",
-            "content":
-            f"""你是人工智能程序的提示生成器。这里有一个关于描述<{drawing_content}>，我给你一个模板，然后你根据提示模板生成图像提示。提示模板："[type of art], [subject or topic], [aesthetic details, lighting, and styles], [colors]"，图像提示例子：Very cute children's illustration,by studio ghibli, makoto shinkai, by artgerm, by wlop, by greg rutkowski, a tree, Vivid Colors, white background, soft lines and textures. Respond the prompt only, in English.
-        """
-        })
-    else:
-        raise "Not valid drawing type"
-    # print(temp_memory)
-    agent_reply = create_chat_completion(model=MODEL,
-                                         messages=temp_memory,
-                                         temperature=1.2)
-    print("agent: ", agent_reply)
+        agent_reply = f"Cute cartoon drawing, landscape panting, {drawing_content}, cartoon style"
     # TODO 多卡推断
+    print("agent: ", agent_reply)
+    
     image_data = generate_draw_with_stable_v2(agent_reply, save_path)
     return image_data
 

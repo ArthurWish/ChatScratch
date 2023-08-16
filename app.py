@@ -60,42 +60,61 @@ def get_audio():
     """ transform audio to text and add story info"""
     blob = request.files['file']
     act = request.form.get('act')
-    print("act", act)
+    imgid = request.form.get('imgid')
     assert act == "1" or act == "2" or act == "3" or act == "4"
     type = request.form.get('type')
     assert type == "role" or type == "background" or type == "event" or type == "code"
-    blob.save(f'static/{act}+{type}.webm')
-    with open(f'static/{act}+{type}.webm', 'rb') as f:
-        transcript = openai.Audio.transcribe("whisper-1", f)
-    content = transcript["text"]
-    print(content)
-    story_info.add(act, type, content)
+    blob.save(f'static/{act}+{type}+{imgid}.webm')
+    try:
+        with open(f'static/{act}+{type}+{imgid}.webm', 'rb') as f:
+            transcript = openai.Audio.transcribe("whisper-1", f)
+            print("transcript", transcript)
+        content = transcript["text"]
+        # print(content)
+    except:
+        print("error")
+    story_info.add(act, type, imgid, content)
     return jsonify({'status': 'success', 'content': content})
 
 
+@app.route('/get_description', methods=['GET', 'POST'])
+def get_description():
+    act = request.form.get('act')
+    imgid = int(request.form.get('imgid'))
+    assert act == "1" or act == "2" or act == "3" or act == "4"
+    type = request.form.get('type')
+    assert type == "role" or type == "background" or type == "event" or type == "code"
+    print(act,type,imgid)
+    if imgid < len(story_info.acts[act][type]):
+        Text = story_info.acts[act][type][imgid]
+    else:
+        Text = '请输入描述'
+    print(Text)
+
+    return jsonify({ 'Text': Text})
+
+@app.route('/send_description', methods=['GET', 'POST'])
+def send_description():
+    act = request.form.get('act')
+    imgid = int(request.form.get('imgid'))
+    assert act == "1" or act == "2" or act == "3" or act == "4"
+    type = request.form.get('type')
+    assert type == "role" or type == "background" or type == "event" or type == "code"
+    print(act,type,imgid)
+    Text = request.form.get('Text')
+    print(Text)
+    try:
+        story_info.add(act, type, imgid, Text)
+        
+        return jsonify({ 'Status': ['Success']})
+    except:
+        return jsonify({ 'Status': ['Fail']})
+ 
 @app.route('/generate', methods=['GET', 'POST'])
 def generate():
     """return images and sounds"""
-    draft_url = request.form.get("draft_url")
-    if draft_url!='placeholder':
-        base_img = request.form.get("draft_url").split(',')[1]  # base64
-        base_img_bytes = base64.b64decode(base_img)
-        img = Image.open(io.BytesIO(base_img_bytes)).convert('RGBA')
-        bg = Image.new('RGBA', img.size, (255, 255, 255))
-        # TODO 角色背景分开
-        # 在背景上粘贴原图像（使用原图像作为遮罩以保留其透明度）
-        combined = Image.alpha_composite(bg, img)
-        combined.convert('RGB').save('static/base_draft.png', 'PNG')
-        current_sketch=extract_from_sketch(img='static/base_draft.png')
-        current_sketch_content=','.join(current_sketch.split(',')[0:-4])
-        current_sketch_style=','.join(current_sketch.split(',')[-4:])
-        print(current_sketch)
-        has_img=True
-    else:
-        has_img=False
-        
-    id = request.form.get('id') # part id   第一幕第二幕第三幕
-    index_id = request.form.get('index_id') # current part, which image 
+    id = request.form.get('id') # part id
+    index_id = request.form.get('index_id') # current part, which image
     index_id = int(index_id)
     assert id == "1" or id == "2" or id == "3"
     assests_path = f"static/{id}"
@@ -106,48 +125,22 @@ def generate():
     temp_memory = []
     # query
     content = story_info.get_act(act_name=id, key=askterm)
-    print("content", content)   #当前类别内的描述
-    print("index_id", index_id)  
+    print("content", content)
+    print("index_id", index_id)
     # user already input
-    if has_img==True:  # 存在草图
-        if len(content) >= index_id+1: #存在语音输入的定义，结合两者给出灵感
-            current_drawing = content[index_id]
-            print("current_drawing", current_drawing)
-        else:
-            current_drawing=''
-        print(current_drawing)
-        msg=[]
-        msg.append({"role":
-            "user",
-            "content":
-            f"""你是一个儿童故事编剧。这里有一个描述<{current_drawing},{current_sketch_content}>，请给出你根据描述联想的4个相关的{askterm}，不超过75字.Respond the prompt only, in English.
-        """})    
-        agent_reply = create_chat_completion(model=MODEL,
-                                         messages=msg,
-                                         temperature=0.3)
-        #print(related_content)
-        print("agent: ", agent_reply)
-        if '\n' not in agent_reply:
-            raise f"ERROR! Please check {agent_reply}"
-        reply_splited = split_to_parts(agent_reply)
-        if len(reply_splited) != 4:
-            return "the reply is not 4"
-        assert len(reply_splited) == 4
-        for index, reply in enumerate(reply_splited):    
-            
+    if len(content) >= index_id+1:
+        current_drawing = content[index_id]
+        current_drawing=translate_to_english(current_drawing)
+        print("current_drawing", current_drawing)
+        for index in range(4):
             output["sound"].append(text_to_speech(
-                translate_to_chinese(reply), f"{assests_path}/sound-{index}"))
-            prompt="very cute illustration for a children's Scratch project,"+reply+current_sketch_style
-            print(prompt)
+                current_drawing, f"{assests_path}/sound-{index}"))
             output["image"].append(
-                generate_draw_with_stable_v2(prompt= prompt,
-                                             save_path=f'{assests_path}/image-{index}'))
-            
-                # generate_draw(drawing_type=askterm,
-                #               drawing_content=current_drawing,
-                #               save_path=f'{assests_path}/image-{index}'))
+                generate_draw(drawing_type=askterm,
+                              drawing_content=current_drawing,
+                              save_path=f'{assests_path}/image-{index}'))
     # user not input
-    elif len(content) < index_id+1:   #没有草图，也没有相关描述
+    elif len(content) < index_id+1:
         prompt = story_info.get_prompt(id, askterm)
         print("story_info.get_prompt:\n", prompt)
         temp_memory.append(prompt)
@@ -160,8 +153,8 @@ def generate():
         reply_splited = split_to_parts(agent_reply)
         if len(reply_splited) != 4:
             return "the reply is not 4"
-        assert len(reply_splited) == 4
         for index, reply in enumerate(reply_splited):
+            reply=translate_to_english(reply)
             output["sound"].append(text_to_speech(
                 reply, f"{assests_path}/sound-{index}"))
             output["image"].append(
@@ -170,6 +163,8 @@ def generate():
                               save_path=f'{assests_path}/image-{index}'))
     else:
         content = content[0]
+        content=translate_to_english(content)
+    
         for index in range(4):
             output["sound"].append(text_to_speech(
                 content, f"{assests_path}/sound-{index}"))
@@ -350,7 +345,7 @@ if __name__ == '__main__':
     # text_to_speech("第一幕", f"第一幕.mp3")
     # text_to_speech("第二幕", f"第二幕.mp3")
     # text_to_speech("第三幕", f"第三幕.mp3")
-    app.run(host='0.0.0.0', port=5500, debug=True)
+    app.run(host='0.0.0.0', port=5500, debug=False)
     # extracted_reply = ['event_whenflagclicked', 'switchcostumeto', 'control_wait', 'switchcostumeto', 'control_wait', 'switchcostumeto', 'control_wait', 'switchcostumeto', 'control_wait']
     # block_list = cal_similarity(extracted_reply, ass_block)
     # block_list = [block for block in block_list if block]
