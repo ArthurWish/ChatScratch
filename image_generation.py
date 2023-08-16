@@ -12,11 +12,11 @@ from rembg import remove
 from tools import MODEL
 
 
-#解码图像
+# 解码图像
 def decode_base64_to_image(encoding):
     if encoding.startswith("data:image/"):
-        encoding=encoding.split(":")[1].split(",")[1]
-    image=Image.open(io.BytesIO(base64.b64decode(encoding)))
+        encoding = encoding.split(":")[1].split(",")[1]
+    image = Image.open(io.BytesIO(base64.b64decode(encoding)))
     return image
 
 
@@ -74,9 +74,9 @@ def generate_draw_with_stable(prompt, save_path):
 
 def rule_refine_drawing_prompt_for_role(content):
     temp_memory = []
-    
+
     temp_memory.append({
-            "role":
+        "role":
             "user",
             "content":
             f"""you are an expert on prompting engineering for text to image generation。Here is a character<{content}>。
@@ -86,7 +86,7 @@ def rule_refine_drawing_prompt_for_role(content):
             2D, animation, cartoon. 
             Respond the prompt only, in English.
         """
-        })
+    })
 
     agent_reply = create_chat_completion(model=MODEL,
                                          messages=temp_memory,
@@ -94,7 +94,8 @@ def rule_refine_drawing_prompt_for_role(content):
     print("agent: ", agent_reply)
     # return f"very cute illustration for a children's Scratch project, {content} with a transparent background, Cartoonish Illustration Style,Acrylic, 4k"
     return agent_reply
- 
+
+
 def rule_refine_drawing_prompt(content):
     """
     very cute illustration for a children's Scratch project, A runnnig bear, Bold and Bright Illustration Styles, Digital Painting, by Pixar style, no background objects
@@ -161,7 +162,7 @@ def generate_draw(drawing_type, drawing_content, save_path):
         agent_reply = f"Cute cartoon drawing, landscape panting, {drawing_content}, cartoon style"
     # TODO 多卡推断
     print("agent: ", agent_reply)
-    
+
     image_data = generate_draw_with_stable_v2(agent_reply, save_path)
     return image_data
 
@@ -225,6 +226,7 @@ def generate_draw_with_dalle(prompt, save_path):
             png.write(b64decode(image_dict["b64_json"]))
     return image_data_return
 
+
 def rm_img_bg_local(in_path, out_path):
     with open(in_path, 'rb') as i:
         with open(out_path, 'wb') as o:
@@ -233,7 +235,8 @@ def rm_img_bg_local(in_path, out_path):
             o.write(output)
     with open(out_path, 'rb') as o:
         encoded_data = base64.b64encode(o.read())
-        return encoded_data.decode('utf-8') 
+        return encoded_data.decode('utf-8')
+
 
 def rm_img_bg(image_base64):
     response = requests.post(
@@ -253,15 +256,15 @@ def rm_img_bg(image_base64):
 
 def generate_draw_with_stable_v2(prompt, save_path):
     url = "http://10.73.3.223:55233"
-   
+
     payload = {
         "prompt": prompt,
         "negative_prompt": "ugly, ugly arms, ugly hands, ugly teeth, ugly nose, ugly mouth, ugly eyes, ugly ears,",
         "steps": 25,
         "sampler_name": "Euler a",
         "cfg_scale": 7,
-        "width":512,
-        "height":512
+        "width": 512,
+        "height": 512
     }
     response = requests.post(url=f'{url}/sdapi/v1/txt2img', json=payload)
     data = response.json()
@@ -276,6 +279,7 @@ def generate_draw_with_stable_v2(prompt, save_path):
             # f.write(b64decode(image["base64"]))
     # only use for single image
     return encoded_result
+
 
 def generate_image_to_image_v2(prompt, base_image):
     url = "http://10.73.3.223:55233"
@@ -332,29 +336,29 @@ def generate_controlnet(prompt, base_image):
         resized_image.save(buffer, format='PNG')
         img_base64 = base64.b64encode(buffer.getvalue()).decode('utf-8')
     payload = {
-        "prompt":prompt,
-        #"Digital art, a colorful bird, by studio ghibli, makoto shinkai, by artgerm, by wlop, by greg rutkowski, Vivid Colors, white background,simple background",
+        "prompt": prompt,
+        # "Digital art, a colorful bird, by studio ghibli, makoto shinkai, by artgerm, by wlop, by greg rutkowski, Vivid Colors, white background,simple background",
         "negative_prompt": "ugly, ugly arms, ugly hands, ugly teeth, ugly nose, ugly mouth, ugly eyes, ugly ears,scary,handicapped,",
-        "batch_size":1,
+        "batch_size": 1,
         "steps": 50,
         "sampler_name": "Euler a",
         "cfg_scale": 7,
-        "width":512,
-        "height":512,
+        "width": 512,
+        "height": 512,
         "script_args": ["outpainting mk2", ],
-        "alwayson_scripts":{
-            "ControlNet":{
-                "args":[
+        "alwayson_scripts": {
+            "ControlNet": {
+                "args": [
                     {
-                    "enabled":True,
-                    "input_image":img_base64,
-                    #"control_type":"Scribble"
-                    "module":'scribble_xdog',
-                    "model":'control_v11p_sd15_scribble [d4ba51ff]',
-                    # "starting_control_step":0,
-                    # "ending_control_step":1,
-                    #"guessmode":False
-                }
+                        "enabled": True,
+                        "input_image": img_base64,
+                        # "control_type":"Scribble"
+                        "module": 'scribble_xdog',
+                        "model": 'control_v11p_sd15_scribble [d4ba51ff]',
+                        # "starting_control_step":0,
+                        # "ending_control_step":1,
+                        # "guessmode":False
+                    }
                 ]
             }
         }
@@ -366,11 +370,10 @@ def generate_controlnet(prompt, base_image):
         raise Exception("Non-200 response: " + str(response.text))
 
     data = response.json()
-    image=decode_base64_to_image(response.json()['images'][0])
-    image.save("image_to_image.png",format='PNG')
+    image = decode_base64_to_image(response.json()['images'][0])
+    image.save("image_to_image.png", format='PNG')
 
     return data['images'][0]
-
 
 
 def extract_from_sketch(img):
@@ -383,7 +386,7 @@ def extract_from_sketch(img):
         img_base64 = base64.b64encode(buffer.getvalue()).decode('utf-8')
     in_load = {
         "image": img_base64,
-        "model":"clip"
+        "model": "clip"
     }
     response = requests.post(url=f'{url}/sdapi/v1/interrogate', json=in_load)
     return response.json()['caption']

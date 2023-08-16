@@ -308,7 +308,8 @@ def generate_code():
     print("extracted_step1", extracted_step1)
     with open(f"static/codes/agent_reply-{id}.json", "w", encoding='utf-8') as f:
         json.dump(extracted_step1, f)
-    audio_base64 = text_to_speech(translate_to_chinese(step1), f"static/codes/agent-reply-{id}.mp3")
+    audio_base64 = text_to_speech(translate_to_chinese(
+        step1), f"static/codes/agent-reply-{id}.mp3")
     block_list = chatgpt_extract_step2(step2)
     print(block_list)
     output_json = 'static/codes/block_suggestion.json'

@@ -167,6 +167,7 @@ def generate_code_step(content, steps):
                                          temperature=0)
     return agent_reply
 
+
 def chatgpt_extract_step1(text):
     code_agent = []
     code_agent.append({
@@ -187,6 +188,7 @@ def chatgpt_extract_step1(text):
     else:
         print(f"Not valid:{type(agent_reply)}, please check the content")
 
+
 def chatgpt_extract_step2(step2):
     motion_blocks = MotionBlocks()
     looks_blocks = LooksBlocks()
@@ -195,44 +197,12 @@ def chatgpt_extract_step2(step2):
     control_blocks = ControlBlocks()
     sensing_blocks = SensingBlocks()
     ass_block = AssembleBlocks(motion_blocks, looks_blocks, sound_blocks,
-                            events_blocks, control_blocks, sensing_blocks)
+                               events_blocks, control_blocks, sensing_blocks)
     extracted_reply = chatgpt_extract_code(step2)
     block_list = cal_similarity(extracted_reply, ass_block)
     block_list = [block for block in block_list if block]
     return block_list
 
 
-# def test():
-#     blocks = Blocks()
-#     motion_blocks = MotionBlocks()
-#     looks_blocks = LooksBlocks()
-#     sound_blocks = SoundBlocks()
-#     events_blocks = EventsBlocks()
-#     control_blocks = ControlBlocks()
-#     sensing_blocks = SensingBlocks()
-#     ass_block = AssembleBlocks(motion_blocks, looks_blocks, sound_blocks,
-#                                events_blocks, control_blocks, sensing_blocks)
-#     # 角色状态（单一角色），对话（事件、控制）（两个角色、三个角色）
-#     content = generate_code_step("使用键盘控制角色移动")
-#     print(content)
-#     step1, step2 = extract_step(content)
-
-#     print("step1:", step1)
-#     print(step2)
-#     extracted_step1 = chatgpt_extract_step1(step1)
-#     with open(f"static/codes/agent_reply-{1}.json", "w", encoding='utf-8') as f:
-#         json.dump(extracted_step1, f)
-#     print("extracted_step1", extracted_step1)
-
-#     extracted_reply = chatgpt_extract_code(step2)
-#     print("extracted_reply:\n", extracted_reply)
-#     block_list = cal_similarity(extracted_reply, ass_block)
-#     block_list = [block for block in block_list if block]
-#     print("block_list:\n", block_list)
-
-# def test2():
-
-# generate_code_step("使用键盘控制角色移动")
-# test()
-# main()
-# print("r1", r1, "\nr2", r2)
+if __name__ == "__main__":
+    pass

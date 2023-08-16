@@ -39,7 +39,7 @@ def split_to_parts(reply: str):
 
 
 def toSVG(infile, outpath, temppath):
-     with wImage(filename=infile) as img:
+    with wImage(filename=infile) as img:
         img.format = 'svg'
         hash_object = hashlib.md5(img.make_blob())
         hex_dig = hash_object.hexdigest()
@@ -238,6 +238,7 @@ def translate_to_english(content):
                                   messages=temp_memory,
                                   temperature=0)
 
+
 def translate_to_chinese(content):
     """将我给定的文本翻译为中文，只回答结果："""
     temp_memory = []
@@ -252,6 +253,7 @@ def translate_to_chinese(content):
     return create_chat_completion(model=MODEL,
                                   messages=temp_memory,
                                   temperature=0)
+
 
 def test():
     string = '1. 小明：一个勇敢的男孩，喜欢探险和冒险。他在森林里迷路了，正在寻找回家的路。\n2. 小芳：一个聪明的女孩，喜欢读书和学习。她在图书馆里发现了一本神秘的书，决定破解其中的谜题。\n3. 小华：一个善良的男孩，喜欢帮助别人。他在街上看到一个老奶奶摔倒了，决定去帮助她。\n4. 小玲：一个有想象力的女孩，喜欢画画和创作。她在花园里发现了一只神奇的小鸟，决定和它成为朋友。'
