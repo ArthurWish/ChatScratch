@@ -1,9 +1,8 @@
 import base64
 from flask import Flask, jsonify, request
-from speech import text_to_speech
+from speech import openai_speech
 import os
 import json
-from chat import create_chat_completion
 from flask_cors import CORS
 from tools import *
 from story_dict import StoryInfo
@@ -55,12 +54,19 @@ def get_audio():
     blob.save(f'static/{act}+{type}+{imgid}.webm')
     try:
         with open(f'static/{act}+{type}+{imgid}.webm', 'rb') as f:
-            transcript = openai.Audio.transcribe("whisper-1", f)
+            transcript = client.audio.transcriptions.create(
+                model="whisper-1",
+                file=f
+            )
             print("transcript", transcript)
-        content = transcript["text"]
-        # print(content)
-    except:
-        print("get_audio error")
+        content = transcript.text
+        print(content)
+    except FileNotFoundError as e:
+        print("File not found error:", e)
+    except IOError as e:
+        print("IO error:", e)
+    except Exception as e:  # 其他所有异常
+        print("get_audio error:", e)
     story_info.add(act, type, imgid, content)
     return jsonify({'status': 'success', 'content': content})
 
@@ -122,7 +128,7 @@ def generate():
         current_drawing_e = translate_to_english(current_drawing)
         print("current_drawing", current_drawing)
         for index in range(4):
-            output["sound"].append(text_to_speech(
+            output["sound"].append(openai_speech(
                 (current_drawing), f"{assests_path}/sound-{index}"))
             output["image"].append(
                 generate_draw(drawing_type=askterm,
@@ -144,7 +150,7 @@ def generate():
             print("the reply is not 4")
             return
         for index, reply in enumerate(reply_splited):
-            output["sound"].append(text_to_speech(
+            output["sound"].append(openai_speech(
                 reply, f"{assests_path}/sound-{index}"))
             reply = translate_to_english(reply)
             output["image"].append(
@@ -156,45 +162,13 @@ def generate():
         # content=translate_to_english(content)
 
         for index in range(4):
-            output["sound"].append(text_to_speech(
+            output["sound"].append(openai_speech(
                 translate_to_english(content), f"{assests_path}/sound-{index}"))
             output["image"].append(
                 generate_draw(drawing_type=askterm,
                               drawing_content=content,
                               save_path=f'{assests_path}/image-{index}'))
     return jsonify(output)
-
-
-@app.route('/generate_task', methods=['GET', 'POST'])
-def generate_task():
-    # 儿童提问，首先生成编程任务
-    # data format: json
-    question = request.form.get("quesiton")
-    try:
-        blob = request.files['audio']  # 获取上传的音频文件对象
-        blob.save(f'static/code-question-{id}.webm')
-        audio_file = open(f'static/code-question-{id}.webm', 'rb')
-        transcript = openai.Audio.transcribe("whisper-1", audio_file)
-        content = transcript["text"]
-        audio_file.close()
-    except:
-        print("not audio found!")
-    # only for test
-    content = request.form.get("content")
-    temp_memory = []
-    temp_memory.append({
-        "role":
-        "user",
-        "content":
-        f"""你是一个专业的Scratch编程老师。目前数据库里有一些基础事件的Scratch实现：发出声音、键盘控制移动、点击角色发光、发出广播切换场景等，根据问题<{content}>，分点列举3个最有价值的Scratch代码实现，你的目标是模仿数据库的事件来使实现的Scratch代码有逻辑且正确。
-        """
-    })
-    agent_reply = create_chat_completion(model=MODEL,
-                                         messages=temp_memory,
-                                         temperature=0)
-    print("agent: ", agent_reply)
-    reply_splited = split_to_parts(agent_reply)
-    return agent_reply
 
 
 @app.route('/generate_img_to_img', methods=['GET', 'POST'])
@@ -218,19 +192,12 @@ def generate_img_to_img():
         combined = Image.alpha_composite(bg, img)
         combined.convert('RGB').save('static/temp.png', 'PNG')
     content = story_info.get_act(act_name=id, key=askterm)
-    current_role = content[int(index_id)]
-    print("current_role", current_role)
-
-    current_role = translate_to_english(current_role)
+    current_role = translate_to_english(content[int(index_id)])
     print("current_role", current_role)
     if askterm == "role":
         content = rule_refine_drawing_prompt_for_role(current_role)
     else:
         content = rule_refine_drawing_prompt(current_role)
-
-    # content = rule_refine_drawing_prompt(translate_to_english(current_role))
-    # content = content +  ['Vivid Colors, white background']
-    # content = ['a cat, Highly detailed, Vivid Colors, white background']
     if content != []:
         # image_base64 = generate_image_to_image_v2(
         image_base64 = generate_controlnet(
@@ -249,7 +216,7 @@ def generate_img_to_img():
 @app.route('/save_drawings', methods=['GET', 'POST'])
 def save_drawings():
     role_list = json.loads(request.form['role'])
-    print(role_list)
+    # print(role_list)
     project_path = "/media/sda1/cyn-workspace/scratch-gui/src/lib/default-project"
     assests_path = f"/media/sda1/cyn-workspace/Scratch-project/ScratchGPT/static/role"
     if os.path.exists(assests_path):
@@ -290,45 +257,58 @@ def generate_code():
     """
     return code_list
     """
-    os.makedirs('static/codes', exist_ok=True)
-    id = request.form.get("id")
-    audio_blob = request.files['file']
-    # print(id, audio_blob)
-    audio_blob.save(f'static/codes/code-question-{id}.webm')
-    audio_file = open(f'static/codes/code-question-{id}.webm', 'rb')
-    transript = openai.Audio.transcribe("whisper-1", audio_file)
-    content = transript["text"]
-    print(content)
-    # test
-    # content = '点击绿旗，让角色A移动到边缘，并切换角色'
-    step1 = generate_code_step(content, "step1")
-    step2 = generate_code_step(content, "step2")
-    # step1, step2 = extract_step(content)
-    print("step1", step1)
-    print("step2", step2)
-    extracted_step1 = chatgpt_extract_step1(step1)
-    print("extracted_step1", extracted_step1)
-    with open(f"static/codes/agent_reply-{id}.json", "w", encoding='utf-8') as f:
-        json.dump(extracted_step1, f)
-    audio_base64 = text_to_speech(translate_to_chinese(
-        step1), f"static/codes/agent-reply-{id}.mp3")
-    block_list = chatgpt_extract_step2(step2)
-    print(block_list)
-    output_json = 'static/codes/block_suggestion.json'
-    data = {}
-    if os.path.exists(output_json):
-        with open(output_json, 'r') as f:
-            data = json.load(f)
-    data[str(int(id)-1)] = block_list
-    with open(output_json, 'w') as f:
-        json.dump(data, f, indent=4)
-    return jsonify({'file': audio_base64})
+    try:
+        os.makedirs('static/codes', exist_ok=True)
+        id = request.form.get("id")
+        audio_blob = request.files['file']
+        # print(id, audio_blob)
+        audio_blob.save(f'static/codes/code-question-{id}.webm')
+        with open(f'static/codes/code-question-{id}.webm', 'rb') as f:
+            transcript = client.audio.transcriptions.create(
+                    model="whisper-1",
+                    file=f
+                )
+            content = transcript.text
+            print(content)
+        # test
+        # content = '点击绿旗，让角色A移动到边缘，并切换角色'
+        step1 = generate_code_step(content, "step1")
+        step2 = generate_code_step(content, "step2")
+        # step1, step2 = extract_step(content)
+        print("step1", step1)
+        print("step2", step2)
+        audio_base64 = openai_speech(translate_to_chinese(
+            step1), f"static/codes/agent-reply-{id}.mp3")
+        extracted_step1 = chatgpt_extract_step1(step1)
+        print("extracted_step1", extracted_step1)
+        with open(f"static/codes/agent_reply-{id}.json", "w", encoding='utf-8') as f:
+            json.dump(extracted_step1, f)
+        block_list = chatgpt_extract_step2(step2)
+        print(block_list)
+
+        output_json = 'static/codes/block_suggestion.json'
+        data = {}
+        if os.path.exists(output_json):
+            with open(output_json, 'r') as f:
+                data = json.load(f)
+        data[str(int(id)-1)] = block_list
+        with open(output_json, 'w') as f:
+            json.dump(data, f, indent=4)
+        return jsonify({'file': audio_base64})
+    except Exception as e:
+        print(str(e))
+        audio = openai_speech(
+            '输入错误，请点击打勾按钮后重新提问', f"static/codes/agent-error.mp3")
+        return jsonify({'status': 'fail', 'file': audio})
+        # return jsonify({'error': 'An error occurred while processing your request.'})
 
 
 if __name__ == '__main__':
-    # text_to_speech("第一幕", f"第一幕.mp3")
-    # text_to_speech("第二幕", f"第二幕.mp3")
-    # text_to_speech("第三幕", f"第三幕.mp3")
+    # openai_speech("第一幕", f"第一幕.mp3")
+    # openai_speech("第二幕", f"第二幕.mp3")
+    # openai_speech("第三幕", f"第三幕.mp3")
+    # audio_base64 = openai_speech(
+    #     '输入错误，请点击打勾按钮后重新提问', f"static/codes/agent-error.mp3")
     app.run(host='0.0.0.0', port=5500, debug=False)
     # extracted_reply = ['event_whenflagclicked', 'switchcostumeto', 'control_wait', 'switchcostumeto', 'control_wait', 'switchcostumeto', 'control_wait', 'switchcostumeto', 'control_wait']
     # block_list = cal_similarity(extracted_reply, ass_block)

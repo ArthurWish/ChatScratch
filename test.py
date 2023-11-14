@@ -13,8 +13,32 @@
 #         return 500,500
     
 # print(Get_size('static/scene/0d551a530e6288f4df3b944f1a9ea6de.svg'))
-import requests
-url = "http://10.73.3.223:55233"
-response = requests.get(
-        url=f'{url}/controlnet/module_list')
-print(response.json())
+import openai
+import os
+import configparser
+
+os.environ["HTTP_PROXY"] = "http://127.0.0.1:7890"
+os.environ["HTTPS_PROXY"] = "http://127.0.0.1:7890"
+def get_api_key():
+    conf = configparser.ConfigParser()
+    conf.read("./envs/keys.ini")
+    return conf.get("openai", "api")
+openai.api_key = get_api_key()
+
+def create_chat_completion(messages,
+                           model=None,
+                           temperature=0,
+                           max_tokens=None) -> str:
+    """Create a chat completion using the OpenAI API"""
+    response = None
+    response = openai.ChatCompletion.create(model=model,
+                                            messages=messages,
+                                            temperature=temperature,
+                                            max_tokens=max_tokens)
+    if response is None:
+        raise RuntimeError("Failed to get response")
+
+    return response.choices[0].message["content"]
+
+
+print(create_chat_completion(messages=[{"role": "user", "content": "can you help me?"}],model="gpt-3.5-turbo"))

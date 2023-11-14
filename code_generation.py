@@ -4,8 +4,45 @@ import Levenshtein as lv
 from dataclasses import asdict
 from block_types import *
 import re
-from chat import create_chat_completion
-from tools import MODEL
+from chat import *
+from tools import MODEL, extract_answer_content_to_list
+from langchain.prompts import PromptTemplate
+from langchain.llms import OpenAI
+from langchain.chains import LLMChain
+
+
+class RefinePrompt:
+    PROMPT_NEW = json.load(open("./scratch_prompt.json", "r"))
+    _template = """
+    Your task is to generate a four-level mind map of the Scratch code based on the problem. The four levels are objects, key steps, programming steps and specific Scratch code.
+    The results in \"anwser\" must be returned using jsMind's default node_tree data format.
+    Here is an example:
+    
+    Following the previous prompt, write a prompt that describes the following elements:
+    {desc}
+
+    You should only respond in JSON format, as described below:
+    The return format is as follows:
+    {{
+        "question":"$YOUR_QUESTION_HERE",
+        "answer": "$YOUR_ANSWER_HERE"
+    }}
+    Make sure the response can be parsed by Python json.loads
+    """
+    llm = OpenAI(openai_api_key=client.api_key)
+    prompt = PromptTemplate(
+        input_variables=["desc"],
+        template=_template
+    )
+    chain = LLMChain(prompt=prompt, llm=llm)
+
+    def run(self, text):
+        res = self.chain.run(text)
+        # 解析json
+        result = json.loads(res)
+        return result["answer"]
+
+
 PROMPT2 = """
 {"prompt":"点击绿旗，使角色说话 ->","completion":" \"when green flag clicked\",\"say [Hello!] for [2] seconds\",\"say [Imagine if...] for [2] seconds\"\n"}
 """
@@ -52,13 +89,22 @@ def chatgpt_extract_code(text):
         "role":
         "user",
         "content":
-        f"""Extract the code contained contained within {text} and output in JSON format, including a key: "code"."""
+        f"""
+        Solve a question answering task with interleaving Thought. Extract the code contained within question.
+        Here are some examples.
+        Question:['when green flag clicked', 'forever', 'go to x: (pick random [-240] to [240]) y: (pick random [-180] to [180])', 'wait [1] seconds']
+        Answer:["when green flag clicked","forever","go to x: (pick random [-240] to [240]) y: (pick random [-180] to [180])","wait [1] seconds"]
+        Question:['when green flag clicked', 'switch backdrop to [Savanna]', 'wait [2] seconds', 'switch backdrop to [Metro]']
+        Answer:["when green flag clicked","switch backdrop to [Savanna]","wait [2] seconds","switch backdrop to [Metro]"]
+        Question:{text}
+        """
     })
     agent_reply = create_chat_completion(model=MODEL,
                                          messages=code_agent,
                                          temperature=0)
     print(agent_reply, type(agent_reply))
-    agent_reply = json.loads(agent_reply)["code"]
+    # agent_reply = json.loads(agent_reply)["code"]
+    agent_reply = extract_answer_content_to_list(agent_reply)
     if isinstance(agent_reply, list):
         return agent_reply
     elif isinstance(agent_reply, str):
@@ -113,6 +159,9 @@ def cal_similarity(reply_list, blocks):
         if "if" in str:
             block_list.append("control_if_else")
             continue
+        if "turn" in str:
+            block_list.append("motion_turnleft")
+            continue
         similarity, max_similarity = 0, 0
         temp_block = ""
         for value in asdict(blocks).values():
@@ -127,6 +176,23 @@ def cal_similarity(reply_list, blocks):
                 # print('Similarity is', max_similarity, value)
         block_list.append(temp_block)
     return block_list
+
+
+class GPTFineTuned:
+
+    def __init__(self, model_id) -> None:
+        self.model_id = model_id
+
+    def code_generation(self, user_message):
+        response = client.chat.completions.create(
+            model=self.model_id,
+            messages=[
+                {"role": "system",
+                    "content": "You are a Scratch programming expert."},
+                {"role": "user", "content": user_message}
+            ]
+        )
+        return re.findall(r'\"(.*?)\"', response.choices[0].message.content)
 
 
 def generate_code_step(content, steps):
@@ -150,22 +216,14 @@ def generate_code_step(content, steps):
             Question:{content}
             """
         })
+        step1 = create_chat_completion(model=MODEL,
+                                       messages=code_agent,
+                                       temperature=0)
+        return step1
     elif steps == "step2":
-        code_agent.append({
-            "role":
-            "user",
-            "content":
-            f"""
-            Solve a question answering task with interleaving Thought. Please provide your answer based on the Scratch Wiki Blocks.
-            Here are some examples.
-            {PROMPT_NEW}
-            Question:{content}
-            """
-        })
-    agent_reply = create_chat_completion(model=MODEL,
-                                         messages=code_agent,
-                                         temperature=0)
-    return agent_reply
+        gpt_tuned = GPTFineTuned("ft:gpt-3.5-turbo-0613:personal::8HnuPdtX")
+        step2 = gpt_tuned.code_generation(content)
+        return step2
 
 
 def chatgpt_extract_step1(text):
@@ -174,13 +232,20 @@ def chatgpt_extract_step1(text):
         "role":
         "user",
         "content":
-        f"""Module categories: Looks, Sound, Events, Control, Sensing, Operators, Variables. Your task is to extract the module categories contained within <{text}>, and output them in JSON format, including a key: "type"."""
+        f"""Solve a question answering task with interleaving Thought. Please select the answer from the Scratch 3.0 categories below: Motion,Looks,Sound,Events,Control,Sensing,Operators,Variables.
+        Here are some examples. 
+        Question:使用Motion来控制角色移动，使用Operators生成随机数，以及使用Control来重复执行。
+        Answer:["Motion", "Operators", "Control"]
+        Question:使用Looks来切换场景，使用Variables创建变量，以及使用Events来广播消息。
+        Answer:"Looks", "Variables", "Events"]
+        Question:{text}
+        """
     })
     agent_reply = create_chat_completion(model=MODEL,
                                          messages=code_agent,
                                          temperature=0)
-    print(agent_reply)
-    agent_reply = json.loads(agent_reply)["type"]
+    print("chatgpt_extract_step1", agent_reply)
+    agent_reply = extract_answer_content_to_list(agent_reply)
     if isinstance(agent_reply, list):
         return ["scratchCategoryId-"+reply.lower() for reply in agent_reply]
     elif isinstance(agent_reply, str):

@@ -1,15 +1,29 @@
 from block_types import *
-from chat import create_chat_completion
+from chat import *
 import os
 import hashlib
 from wand.image import Image as wImage
 import xml.etree.ElementTree as ET
+import re
+import ast
+
+
+os.environ["HTTP_PROXY"] = "http://127.0.0.1:7890"
+os.environ["HTTPS_PROXY"] = "http://127.0.0.1:7890"
+
 
 MODEL = "gpt-4-0613"
 
 
-def init_code_agent():
-    pass
+def extract_answer_content_to_list(s):
+    match = re.search(r'Answer:(.*)', s)
+    if match:
+        content = match.group(1).strip()
+        try:
+            return ast.literal_eval(content)
+        except ValueError:
+            return None
+    return None
 
 
 def question_and_relpy(question):

@@ -2,7 +2,7 @@ import sys
 import time
 from typing import Dict, List
 import json
-import openai
+from openai import OpenAI
 import os
 from dataclasses import dataclass
 from base64 import b64decode
@@ -21,8 +21,7 @@ def get_api_key():
     return conf.get("openai", "api")
 
 
-openai.api_key = get_api_key()
-
+client = OpenAI(api_key=get_api_key())
 
 def creat_memory(task: str, messages: List):
     # messages is full history
@@ -39,7 +38,7 @@ def create_chat_completion_stream(messages,
                                   stream=True,
                                   max_tokens=None):
     start_time = time.time()
-    response = openai.ChatCompletion.create(
+    response = client.chat.completions.create(
         model=model,
         messages=messages,
         temperature=temperature,
@@ -75,14 +74,14 @@ def create_chat_completion(messages,
                            max_tokens=None) -> str:
     """Create a chat completion using the OpenAI API"""
     response = None
-    response = openai.ChatCompletion.create(model=model,
+    response = client.chat.completions.create(model=model,
                                             messages=messages,
                                             temperature=temperature,
                                             max_tokens=max_tokens)
     if response is None:
         raise RuntimeError("Failed to get response")
 
-    return response.choices[0].message["content"]
+    return response.choices[0].message.content
 
 
 def create_agent(task, prompt, model):
@@ -180,18 +179,6 @@ def chat_with_ai(task):
         agent_reply, messages = message_agent(task, user_input)
         print("agent: ", agent_reply)
         agents[task] = (task, messages, model)
-
-
-def draw_with_ai(prompt: str):
-    response = openai.Image.create(prompt=prompt,
-                                   n=1,
-                                   size="256x256",
-                                   response_format="b64_json")
-    for index, image_dict in enumerate(response["data"]):
-        image_data = b64decode(image_dict["b64_json"])
-        image_file = "test.png"
-        with open(image_file, mode="wb") as png:
-            png.write(image_data)
 
 
 def generate_code(task_name, content):

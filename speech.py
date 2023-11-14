@@ -2,7 +2,7 @@ import base64
 import hmac
 import json
 import wave
-import openai
+from chat import *
 import configparser
 import urllib
 import hashlib
@@ -10,7 +10,17 @@ from dataclasses import dataclass
 import time
 import os
 import requests
+# from bark import SAMPLE_RATE, generate_audio
+# from scipy.io.wavfile import write as write_wav
 
+
+# def text_to_speech(text_prompt, audio_file_name):
+#     """
+#     文本转音频，并保存音频
+#     """
+
+#     audio_array = generate_audio(text_prompt)
+#     write_wav("./{audio_file_name}.wav", SAMPLE_RATE, audio_array)
 
 
 def speech_to_text(files, audio_file_name):
@@ -20,10 +30,11 @@ def speech_to_text(files, audio_file_name):
     audio_file = files['audio']
     audio_file.save(f'static/{audio_file_name}.mp3')
     audio_file = open(f'static/{audio_file_name}.mp3', 'rb')
-    transcript = openai.Audio.transcribe("whisper-1", audio_file)
-    content = transcript["text"]
-    
-    return content
+    transcript = client.audio.transcriptions.create(
+        model="whisper-1",
+        file=audio_file
+    )
+    return transcript.text
 
 
 class Authorization:
@@ -96,6 +107,21 @@ class Request:
         # print(self)
 
 
+def openai_speech(text, save_path):
+
+    speech_file_path = save_path
+    response = client.audio.speech.create(
+        model="tts-1",
+        voice="alloy",
+        input=text,
+        speed=0.85
+    )
+    response.stream_to_file(speech_file_path)
+    with open(save_path, 'rb') as f:
+        audio_base64 = base64.b64encode(f.read()).decode('utf-8')
+    return audio_base64
+
+
 def text_to_speech(text, save_path):
     req = Request()
     req.init(text)
@@ -125,11 +151,11 @@ def text_to_speech(text, save_path):
                       headers=header,
                       data=json.dumps(request_data),
                       stream=True)
-    
-    if str(r.content).find("Error") != -1 :
+
+    if str(r.content).find("Error") != -1:
         print(r.content)
         return
-    
+
     i = 1
     wavfile = wave.open(save_path, 'wb')
     wavfile.setparams((1, 2, 16000, 0, 'NONE', 'NONE'))
@@ -140,7 +166,7 @@ def text_to_speech(text, save_path):
         i = i + 1
         wavfile.writeframes(chunk)
     wavfile.close()
-    
+
     with open(save_path, 'rb') as f:
         audio_base64 = base64.b64encode(f.read()).decode('utf-8')
     return audio_base64

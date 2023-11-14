@@ -71,7 +71,7 @@ class StoryInfo:
         # total settings
         str1 = f"""You are a story writer and children are working on a story in three acts, each of which contains three parts: characters, scenes and events."""
         if part_id == 1:
-            str2 = f'Previously in Act 1.'
+            str2 = f'in Act 1.'
             if askterm == 'role':
                 role = self.get_act('1', 'role')
                 str3 = f'In Act 1,'
@@ -173,5 +173,3 @@ if __name__ == "__main__":
         messages=story_memory,
     )
     print("agent: ", agent_reply)
-
-    

@@ -3,13 +3,60 @@ import configparser
 import io
 import requests
 from block_types import *
-from chat import create_chat_completion
+from chat import *
 import openai
 from base64 import b64decode, b64encode
 from PIL import Image
 from io import BytesIO
 from rembg import remove
 from tools import MODEL
+from langchain.prompts import PromptTemplate
+from langchain.llms import OpenAI
+from langchain.chains import LLMChain
+import json
+
+
+class RefinePrompt:
+    _template = """
+    The following tips are used to guide Al Painting Model in creating images. They include details such as character appearance, background, color and lighting effects, as well as the theme and style of the image. The format of these prompts often includes weighted number brackets to designate the importance or emphasis of certain details. For example, "(masterpiece:1.4)" indicates that the quality of the work is very important. Here are some examples:
+    1. (8k, RAW photo, best quality, masterpiece:1.2),(realistic, photo-realistic:1.37), ultra-detailed, 1girl, cute, solo, beautiful detailed sky, detailed cafe, night, sitting, dating, (nose blush), (smile:1.1),(closed mouth), medium breasts, beautiful detailed eyes, (collared shirt:1.1), bowtie, pleated skirt, (short hair:1.2), floating hair, ((masterpiece)), ((best quality)),
+    2. (masterpiece, finely detailed beautiful eyes: 1.2), ultra-detailed, illustration, 1 girl, blue hair black hair, japanese clothes, cherry blossoms, tori, street full of cherry blossoms, detailed background, realistic, volumetric light, sunbeam, light rays, sky, cloud,
+    3. highres, highest quallity, illustration, cinematic light, ultra detailed, detailed face, (detailed eyes, best quality, hyper detailed, masterpiece, (detailed face), blue hairlwhite hair, purple eyes, highest details, luminous eyes, medium breats, black halo, white clothes, backlighting, (midriff:1.4), light rays, (high contrast), (colorful)
+
+    Following the previous prompt, write a prompt that describes the following elements:
+    {desc}
+
+    You should only respond in JSON format, as described below:
+    The return format is as follows:
+    {{
+        "question":"$YOUR_QUESTION_HERE",
+        "answer": "$YOUR_ANSWER_HERE"
+    }}
+    Make sure the response can be parsed by Python json.loads
+    """
+    llm = OpenAI(openai_api_key=client.api_key)
+    prompt = PromptTemplate(
+        input_variables=["desc"],
+        template=_template
+    )
+    chain = LLMChain(prompt=prompt, llm=llm)
+
+    def run(self, text):
+        res = self.chain.run(text)
+        # 解析json
+        result = json.loads(res)
+        return result["answer"]
+
+
+class T2I:
+    def __init__(self):
+        self.text_refine = RefinePrompt()
+
+    def inference(self, text, save_path):
+        refined_text = self.text_refine.run(text)
+        print(f'{text} refined to {refined_text}')
+        encoded_result = generate_draw_with_stable_v2(refined_text, save_path)
+        return encoded_result
 
 
 # 解码图像
@@ -89,13 +136,14 @@ def rule_refine_drawing_prompt_for_role(content):
     agent_reply = create_chat_completion(model=MODEL,
                                          messages=temp_memory,
                                          temperature=0.7)
+
     print("agent: ", agent_reply)
     # return f"very cute illustration for a children's Scratch project, {content} with a transparent background, Cartoonish Illustration Style,Acrylic, 4k"
     return agent_reply
 
 
 def rule_refine_drawing_prompt(content):
-    
+
     temp_memory = []
 
     temp_memory.append({
@@ -115,7 +163,7 @@ def rule_refine_drawing_prompt(content):
                                          messages=temp_memory,
                                          temperature=0.7)
     print("agent: ", agent_reply)
-    
+
     return agent_reply
     """
     # # very cute illustration for a children's Scratch project, A runnnig bear, Bold and Bright Illustration Styles, Digital Painting, by Pixar style, no background objects
@@ -152,37 +200,14 @@ def chatgpt_refine_drawing_prompt(askterm, content):
 
 
 def generate_draw(drawing_type, drawing_content, save_path):
-    # temp_memory = []
-    # if drawing_type == "role":
-    #     temp_memory.append({
-    #         "role":
-    #         "user",
-    #         "content":
-    #         f"""你是人工智能程序的提示生成器。这里有一个描述<{drawing_content}>。我给你一个模板，然后你根据提示模板生成图像提示。提示模板："[type of art], [subject or topic], [style], [colors]"，图像提示例子：Very cute children's illustration,by studio ghibli, makoto shinkai, by artgerm, by wlop, by greg rutkowski, a cat, playing, Vivid Colors, white background, soft lines and textures. Respond the prompt only, in English.
-    #     """
-    #     })
-    # elif drawing_type == "background":
-    #     temp_memory.append({
-    #         "role":
-    #         "user",
-    #         "content":
-    #         f"""你是人工智能程序的提示生成器。这里有一个关于描述<{drawing_content}>，我给你一个模板，然后你根据提示模板生成图像提示。提示模板："[type of art], [subject or topic], [aesthetic details, lighting, and styles], [colors]"，图像提示例子：Very cute children's illustration,by studio ghibli, makoto shinkai, by artgerm, by wlop, by greg rutkowski, a tree, Vivid Colors, white background, soft lines and textures. Respond the prompt only, in English.
-    #     """
-    #     })
-    # else:
-    #     raise "Not valid drawing type"
-    # # print(temp_memory)
-    # agent_reply = create_chat_completion(model=MODEL,
-    #                                      messages=temp_memory,
-    #                                      temperature=1.2)
-    # print("agent: ", agent_reply)
     if drawing_type == "role":
         agent_reply = f"Cute cartoon drawing, {drawing_content}, full character, cartoon style, pure background "
     elif drawing_type == "background":
         agent_reply = f"Cute cartoon drawing, landscape panting, {drawing_content}, cartoon style"
     # TODO 多卡推断
     print("agent: ", agent_reply)
-
+    t2i = T2I()
+    # image_data = t2i.inference(agent_reply, save_path)
     image_data = generate_draw_with_stable_v2(agent_reply, save_path)
     return image_data
 
@@ -375,8 +400,8 @@ def generate_controlnet(prompt, base_image):
                         # "control_type":"Scribble"
                         # "module": 'scribble_xdog',
                         "model": 'control_v11p_sd15_scribble [d4ba51ff]',
-                        "control_mode":1,   #"My prompt is more important"
-                        "module":"invert"
+                        "control_mode": 1,  # "My prompt is more important"
+                        "module": "invert"
                         # "starting_control_step":0,
                         # "ending_control_step":1,
                         # "guessmode":False
