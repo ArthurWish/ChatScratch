@@ -55,6 +55,7 @@ def get_audio():
     try:
         with open(f'static/{act}+{type}+{imgid}.webm', 'rb') as f:
             transcript = client.audio.transcriptions.create(
+                language='en',
                 model="whisper-1",
                 file=f
             )
@@ -82,7 +83,8 @@ def get_description():
     if imgid < len(story_info.acts[act][type]):
         Text = story_info.acts[act][type][imgid]
     else:
-        Text = '请输入描述'
+        # Text = '请输入描述'
+        Text = 'text your description'
     print("get_description", Text)
 
     return jsonify({'Text': Text})
@@ -126,7 +128,7 @@ def generate():
     if len(content) >= index_id+1:
         current_drawing = content[index_id]
         current_drawing_e = translate_to_english(current_drawing)
-        print("current_drawing", current_drawing)
+        print("current_drawing", current_drawing_e)
         for index in range(4):
             output["sound"].append(openai_speech(
                 (current_drawing), f"{assests_path}/sound-{index}"))
@@ -150,9 +152,11 @@ def generate():
             print("the reply is not 4")
             return
         for index, reply in enumerate(reply_splited):
+            # print('reply: ',reply)
+            reply = translate_to_english(reply)
             output["sound"].append(openai_speech(
                 reply, f"{assests_path}/sound-{index}"))
-            reply = translate_to_english(reply)
+            
             output["image"].append(
                 generate_draw(drawing_type=askterm,
                               drawing_content=reply,
@@ -271,20 +275,22 @@ def generate_code():
             content = transcript.text
             print(content)
         # test
-        # content = '点击绿旗，让角色A移动到边缘，并切换角色'
+        # content = 'use keyboard to control the movement of up, down, left and right'
+        # content = 'let my character say hello, and then move to the edge of the screen and final say goodbye'
         step1 = generate_code_step(content, "step1")
         step2 = generate_code_step(content, "step2")
         # step1, step2 = extract_step(content)
-        print("step1", step1)
-        print("step2", step2)
-        audio_base64 = openai_speech(translate_to_chinese(
-            step1), f"static/codes/agent-reply-{id}.mp3")
+        # print("step1", step1)
+        # print("step2", step2)
+        audio_base64 = openai_speech(step1, f"static/codes/agent-reply-{id}.mp3")
+        # audio_base64 = openai_speech(translate_to_chinese(
+        #     step1), f"static/codes/agent-reply-{id}.mp3")
         extracted_step1 = chatgpt_extract_step1(step1)
-        print("extracted_step1", extracted_step1)
+        # print("extracted_step1", extracted_step1)
         with open(f"static/codes/agent_reply-{id}.json", "w", encoding='utf-8') as f:
             json.dump(extracted_step1, f)
         block_list = chatgpt_extract_step2(step2)
-        print(block_list)
+        print("test:", block_list)
 
         output_json = 'static/codes/block_suggestion.json'
         data = {}
@@ -297,6 +303,8 @@ def generate_code():
         return jsonify({'file': audio_base64})
     except Exception as e:
         print(str(e))
+        # audio = openai_speech(
+        #     '输入错误，请点击打勾按钮后重新提问', f"static/codes/agent-error.mp3")
         audio = openai_speech(
             '输入错误，请点击打勾按钮后重新提问', f"static/codes/agent-error.mp3")
         return jsonify({'status': 'fail', 'file': audio})

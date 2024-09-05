@@ -1,3 +1,4 @@
+import subprocess
 from block_types import *
 from chat import *
 import os
@@ -13,13 +14,14 @@ os.environ["HTTPS_PROXY"] = "http://127.0.0.1:7890"
 
 
 MODEL = "gpt-4-0613"
-
+# MODEL = "gpt-4o"
 
 def extract_answer_content_to_list(s):
-    match = re.search(r'Answer:(.*)', s)
+    match = re.search(r'Answer:(.*)', s, re.DOTALL)
     if match:
         content = match.group(1).strip()
         try:
+            print(content)
             return ast.literal_eval(content)
         except ValueError:
             return None
@@ -51,10 +53,30 @@ def split_to_parts(reply: str):
 
     return reply_list
 
+def png_to_svg(png_file_path, svg_file_path):
+    """
+    Convert a PNG file to SVG format using potrace.
+
+    Args:
+    - png_file_path (str): The file path of the PNG image.
+    - svg_file_path (str): The desired file path for the output SVG.
+    """
+    # Call potrace to convert the PNG to SVG
+    subprocess.run(['potrace', png_file_path, '-s', '-o', svg_file_path], check=True)
 
 def toSVG(infile, outpath, temppath):
+    # outfile = os.path.join(outpath, f"{hex_dig}.svg")
+    # tempfile = os.path.join(temppath, f"{hex_dig}.svg")
+    # png_to_svg(infile, outpath)
+    # png_to_svg(infile, temppath)
+    
     with wImage(filename=infile) as img:
+        print(img)
+        img.save(filename='/media/sda1/cyn-workspace/scratch-gui/src/playground/assets/testimage.png')
         img.format = 'svg'
+        img.save(filename='/media/sda1/cyn-workspace/scratch-gui/src/playground/assets/testimage.svg')
+        print('finish')
+        print(img.make_blob())
         hash_object = hashlib.md5(img.make_blob())
         hex_dig = hash_object.hexdigest()
         outfile = os.path.join(outpath, f"{hex_dig}.svg")

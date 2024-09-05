@@ -169,7 +169,7 @@ if __name__ == "__main__":
     # chat with ai
     story_memory.append(prompt)
     agent_reply = create_chat_completion(
-        model="gpt-3.5-turbo",
+        model="gpt-4-0613",
         messages=story_memory,
     )
     print("agent: ", agent_reply)

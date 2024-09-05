@@ -300,7 +300,7 @@ def rm_img_bg(image_base64):
 
 
 def generate_draw_with_stable_v2(prompt, save_path):
-    url = "http://10.73.3.223:55233"
+    url = "http://127.0.0.1:7860"
 
     payload = {
         "prompt": prompt,
@@ -327,7 +327,7 @@ def generate_draw_with_stable_v2(prompt, save_path):
 
 
 def generate_image_to_image_v2(prompt, base_image):
-    url = "http://10.73.3.223:55233"
+    url = "http://127.0.0.1:7860"
     print("[image to image]starting generating image from base image...")
     print("[image to prompt]", prompt)
     image = Image.open(base_image)
@@ -371,7 +371,7 @@ def generate_image_to_image_v2(prompt, base_image):
 # generate_image_to_image_v2(prompt="a cute cat, child's style",
 #                            base_image=r"C:\Users\YunNong\Desktop\ScratchGPT\static\temp.png")
 def generate_controlnet(prompt, base_image):
-    url = "http://10.73.3.223:55233"
+    url = "http://127.0.0.1:7860"
     print("[image to image]starting generating image on the basis of controlnet...")
     print("[txt to image with controlnet]starting generating image on the basis of controlnet...")
     print("[image to prompt]", prompt)
@@ -399,8 +399,8 @@ def generate_controlnet(prompt, base_image):
                         "input_image": img_base64,
                         # "control_type":"Scribble"
                         # "module": 'scribble_xdog',
-                        "model": 'control_v11p_sd15_scribble [d4ba51ff]',
-                        "control_mode": 1,  # "My prompt is more important"
+                        "model": 'control_sd15_canny [fef5e48e]',
+                        "control_mode": 'Balanced',  # "My prompt is more important"
                         "module": "invert"
                         # "starting_control_step":0,
                         # "ending_control_step":1,
@@ -424,7 +424,7 @@ def generate_controlnet(prompt, base_image):
 
 
 def extract_from_sketch(img):
-    url = "http://10.73.3.223:55233"
+    url = "http://127.0.0.1:7860"
     print("[Extracting txt from image]...")
     image = Image.open(img)
     resized_image = image.resize((512, 512))

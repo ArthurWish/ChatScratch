@@ -81,7 +81,140 @@ PROMPT = """
 {"prompt":"点击绿旗，让角色到舞台顶端 ->","completion":" “when green flag clicked\",“go to [random position]\",\"set y to [180]\"\n"}
 """
 PROMPT_NEW = json.load(open("./scratch_prompt.json", "r"))
+code_prompt = """
+    Please provide well-structured Scratch code according to the user's needs. Make sure that the generated code block can be parsed correctly by the Scratch software.
+    
+    Scratch blocks: 
+        askandwait
+        backdropnumbername
+        control_create_clone_of
+        control_delete_this_clone
+        control_forever
+        control_if_else
+        control_if
+        control_repeat
+        control_start_as_clone
+        control_stop
+        control_wait
+        costumenumbername
+        current
+        data_addtolist
+        data_changevariableby
+        data_deletealloflist
+        data_deleteoflist
+        data_hidelist
+        data_hidevariable
+        data_insertatlist
+        data_itemnumoflist
+        data_itemoflist
+        data_lengthoflist
+        data_listcontainsitem
+        data_lists
+        data_replaceitemoflist
+        data_setvariableto
+        data_showlist
+        data_showvariable
+        data_variable
+        direction
+        event_broadcastandwait
+        event_broadcast
+        event_whenbackdropswitchesto
+        event_whenbroadcastreceived
+        event_whenflagclicked
+        event_whengreaterthan
+        event_whenkeypressed
+        event_whenthisspriteclicked
+        looks_changeeffectby
+        looks_changesizeby
+        looks_cleargraphiceffects
+        looks_goforwardbackwardlayers
+        looks_gotofrontback
+        looks_hide
+        looks_nextbackdrop
+        looks_nextcostume
+        looks_sayforsecs
+        looks_say
+        looks_seteffectto
+        looks_setsizeto
+        looks_show
+        looks_switchbackdropto
+        looks_switchcostumeto
+        looks_thinkforsecs
+        looks_think
+        loudness
+        motion_changexby
+        motion_changeyby
+        motion_glidesecstoxy
+        motion_glideto
+        motion_gotoxy
+        motion_goto
+        motion_ifonedgebounce
+        motion_movesteps
+        motion_pointindirection
+        motion_pointtowards
+        motion_setrotationstyle
+        motion_setx
+        motion_sety
+        motion_turnleft
+        motion_turnright
+        my variable
+        of
+        operator_add
+        operator_and
+        operator_contains
+        operator_divide
+        operator_equals
+        operator_gt
+        operator_join
+        operator_length_of
+        operator_letter_of
+        operator_lt
+        operator_mathop
+        operator_mod
+        operator_multiply
+        operator_not
+        operator_or
+        operator_random
+        operator_round
+        operator_subtract
+        repeat_until
+        sensing_colortouchingcolor
+        sensing_daysince2000
+        sensing_distanceto
+        sensing_keypressed
+        sensing_mousedown
+        sensing_mousex
+        sensing_mousey
+        sensing_resettimer
+        sensing_setdragmode
+        sensing_touchingcolor
+        sensing_touchingobject
+        size
+        sound_changeeffectby
+        sound_changevolumeby
+        sound_clearsoundeffects
+        sound_playuntildone
+        sound_play
+        sound_seteffectto
+        sound_setvolumeto
+        sound_stopallsounds
+        timer
+        username
+        wait_until
+        x_position
+        y_position
 
+    Here is an example:
+    {{
+        "code": [{{'block_type': 'event_whenflagclicked', 'arguments': {{}}}}, {{'block_type': 'control_forever', 'arguments': {{}}}}, {{'block_type': 'control_if', 'arguments': {{'condition': {{'block_type': 'sensing_touchingobject', 'arguments': {{'object': '障碍物'}}}}, {{'block_type': 'looks_seteffectto', 'arguments': {{'effect': 'color', 'value': 100}}, {{'block_type': 'operator_subtract', 'arguments': {{'NUM1': {{'block_type': 'sensing_of', 'arguments': {{'property': 'score', 'object': 'Stage'}}, 'NUM2': 1}}]
+    }}
+    
+    User input: {user_input}
+    No need to write down the reasoning process, just tell me the final result. The return format is JSON format:
+        {{
+            "code": "$block_type"
+        }}
+"""
 
 def chatgpt_extract_code(text):
     code_agent = []
@@ -105,7 +238,9 @@ def chatgpt_extract_code(text):
     print(agent_reply, type(agent_reply))
     # agent_reply = json.loads(agent_reply)["code"]
     agent_reply = extract_answer_content_to_list(agent_reply)
+    print('agent_reply agagin: ', agent_reply)
     if isinstance(agent_reply, list):
+        print('sure, a list')
         return agent_reply
     elif isinstance(agent_reply, str):
         return agent_reply.splitlines()
@@ -148,8 +283,20 @@ def test():
 
 
 def cal_similarity(reply_list, blocks):
+    def extract_block_types(data):
+        block_types = []
+        for block in data:
+            block_types.append(block['block_type'])
+            if 'substack' in block:
+                block_types.extend(extract_block_types(block['substack']))
+            if 'arguments' in block:
+                for arg in block['arguments'].values():
+                    if isinstance(arg, dict) and 'block_type' in arg:
+                        block_types.extend(extract_block_types([arg]))
+        return block_types
     # 计算相似度
     block_list = []
+    reply_list = extract_block_types(reply_list)
     for str in reply_list:
         if str == "end" or str == "else":
             continue
@@ -175,6 +322,7 @@ def cal_similarity(reply_list, blocks):
                 temp_block = block_by_index
                 # print('Similarity is', max_similarity, value)
         block_list.append(temp_block)
+    # print('this is the list I find: ', block_list)
     return block_list
 
 
@@ -201,6 +349,7 @@ def generate_code_step(content, steps):
     运动、外观、声音、事件、控制、侦测、运算、变量
     '''
     code_agent = []
+    code_agent2 = []
     if steps == "step1":
         code_agent.append({
             "role":
@@ -221,8 +370,16 @@ def generate_code_step(content, steps):
                                        temperature=0)
         return step1
     elif steps == "step2":
-        gpt_tuned = GPTFineTuned("ft:gpt-3.5-turbo-0613:personal::8HnuPdtX")
-        step2 = gpt_tuned.code_generation(content)
+        # gpt_tuned = GPTFineTuned("ft:gpt-3.5-turbo-0613:personal::8HnuPdtX")
+        code_agent2.append({
+            "role":
+            "user",
+            "content":
+            code_prompt.format(user_input=content)
+        })
+        step2 = create_chat_completion(model=MODEL,
+                                       messages=code_agent2,
+                                       temperature=0)
         return step2
 
 
@@ -270,4 +427,14 @@ def chatgpt_extract_step2(step2):
 
 
 if __name__ == "__main__":
-    pass
+    motion_blocks = MotionBlocks()
+    looks_blocks = LooksBlocks()
+    sound_blocks = SoundBlocks()
+    events_blocks = EventsBlocks()
+    control_blocks = ControlBlocks()
+    sensing_blocks = SensingBlocks()
+    ass_block = AssembleBlocks(motion_blocks, looks_blocks, sound_blocks,
+                               events_blocks, control_blocks, sensing_blocks)
+    block_list = cal_similarity("when the kitten successfully catches a fish", ass_block)
+    block_list = [block for block in block_list if block]
+    print(block_list)

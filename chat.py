@@ -7,7 +7,7 @@ import os
 from dataclasses import dataclass
 from base64 import b64decode
 import configparser
-
+import openai
 os.environ["HTTP_PROXY"] = "http://127.0.0.1:7890"
 os.environ["HTTPS_PROXY"] = "http://127.0.0.1:7890"
 
@@ -19,9 +19,6 @@ def get_api_key():
     conf = configparser.ConfigParser()
     conf.read("./envs/keys.ini")
     return conf.get("openai", "api")
-
-
-client = OpenAI(api_key=get_api_key())
 
 def creat_memory(task: str, messages: List):
     # messages is full history
@@ -82,7 +79,7 @@ def create_chat_completion(messages,
         raise RuntimeError("Failed to get response")
 
     return response.choices[0].message.content
-
+print(create_chat_completion("hello"))
 
 def create_agent(task, prompt, model):
     global agents
